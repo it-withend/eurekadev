@@ -1,4 +1,4 @@
-import type { ExperimentDefinition, ParamSpec } from './types';
+import type { ExperimentDefinition } from './types';
 
 export interface ExperimentRegistry {
   list(): readonly ExperimentDefinition[];
@@ -20,17 +20,4 @@ export function createRegistry(defs: readonly ExperimentDefinition[]): Experimen
   }
   const all = Object.freeze([...defs]);
   return { list: () => all, get: (id) => byId.get(id) };
-}
-
-export function defaultParams(specs: readonly ParamSpec[]): Record<string, number> {
-  return Object.fromEntries(specs.map((p) => [p.id, p.default]));
-}
-
-/** Reads a numeric parameter, falling back to the spec default. */
-export function readParam(params: Record<string, number>, specs: readonly ParamSpec[], id: string): number {
-  const v = params[id];
-  if (typeof v === 'number' && Number.isFinite(v)) return v;
-  const spec = specs.find((p) => p.id === id);
-  if (!spec) throw new Error(`Unknown parameter "${id}"`);
-  return spec.default;
 }

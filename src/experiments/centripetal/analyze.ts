@@ -1,11 +1,11 @@
 import { decimate, linearRegression, lowPass } from '@dsp/index';
-import { readParam } from '@core/registry';
+import { readParam } from '@core/params';
 import type { AnalysisResult, ParamSpec, Recording } from '@core/types';
 import { ACCEL, GYRO, fmt, line, points, steadiestChannel, timeAxis } from '../shared';
 
 export const centripetalParams: ParamSpec[] = [
-  { kind: 'number', id: 'radius', label: 'Radius r (ruler)', unit: 'm', default: 0.25, min: 0.02, max: 2, step: 0.005, help: 'Distance from the spin axis to the centre of the phone.' },
-  { kind: 'number', id: 'radiusUncertainty', label: 'Radius uncertainty Δr', unit: 'm', default: 0.005, min: 0, max: 0.1, step: 0.001 },
+  { kind: 'number', id: 'radius', label: 'Radius r (ruler)', unit: 'cm', scale: 0.01, default: 25, min: 2, max: 200, step: 0.5, help: 'Distance from the spin axis to the centre of the phone.' },
+  { kind: 'number', id: 'radiusUncertainty', label: 'Radius uncertainty Δr', unit: 'cm', scale: 0.01, default: 0.5, min: 0, max: 10, step: 0.1 },
 ];
 
 const MIN_OMEGA = 1.5; // rad/s — below this the centripetal signal drowns in noise.

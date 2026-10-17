@@ -1,6 +1,7 @@
+import { readParam, toDisplay } from '@core/params';
 import type { ExperimentDefinition } from '@core/types';
 import type { AnalyzedTrial } from '../hooks/useTrials';
-import { agreement } from './ResultView';
+import { agreement } from '../verdict';
 
 const ORIGIN = { sensor: 'phone', sample: 'sample', file: 'file' } as const;
 
@@ -48,7 +49,7 @@ export function TrialsTable({
                 onKeyDown={(e) => e.key === 'Enter' && onSelect(t.id)}
               >
                 <td>{t.number}</td>
-                {keyParam && <td>{(t.recording.params[keyParam.id] ?? keyParam.default).toString()}</td>}
+                {keyParam && <td>{toDisplay(keyParam, readParam(t.recording.params, def.params, keyParam.id))}</td>}
                 <td>
                   {p ? (
                     <>

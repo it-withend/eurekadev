@@ -39,7 +39,13 @@ export type ParamSpec =
       kind: 'number';
       id: string;
       label: string;
+      /** Unit shown to the student, e.g. "cm" — whatever a school ruler reads. */
       unit: string;
+      /**
+       * SI value = displayed value × scale (0.01 for cm). Recordings and
+       * analyses always use SI; default/min/max/step are in displayed units.
+       */
+      scale?: number;
       default: number;
       min?: number;
       max?: number;

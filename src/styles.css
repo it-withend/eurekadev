@@ -117,6 +117,11 @@ main { padding: 32px 0 64px; min-height: 70vh; }
 .unit { color: var(--ink-2); font-family: var(--font-mono); font-size: 0.9em; }
 .param-input .unit { min-width: 2.5em; }
 .param-help { font-size: 0.8rem; color: var(--ink-2); }
+.param-error { font-size: 0.82rem; color: var(--bad); margin: 0; }
+.param.invalid input { border-color: var(--bad); }
+button.link { border: none; padding: 2px 4px; color: var(--accent); font-size: 0.85rem; text-decoration: underline; text-underline-offset: 3px; }
+.edit-params { margin-bottom: 12px; }
+.edit-params .hint { margin: 0 0 12px; }
 
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 button {
@@ -153,7 +158,8 @@ progress { width: 100%; accent-color: var(--accent); height: 6px; }
   border-radius: var(--radius); padding: 22px 24px;
 }
 .headline.agrees { border-left-color: var(--good); }
-.headline.off { border-left-color: var(--bad); }
+.headline.off, .headline.imprecise { border-left-color: var(--bad); }
+.headline.imprecise .headline-verdict strong { color: var(--bad); }
 /* No text-transform: labels contain case-sensitive symbols like ω²r. */
 .headline-label { font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.04em; color: var(--ink-2); }
 .headline-value { font-family: var(--font-mono); font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 600; margin: 6px 0; overflow-wrap: anywhere; }
@@ -162,6 +168,11 @@ progress { width: 100%; accent-color: var(--accent); height: 6px; }
 .headline-ref { color: var(--ink-2); }
 .headline-ref .src { font-size: 0.85em; }
 .headline-verdict { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; font-size: 0.92rem; }
+.headline-verdict .stats { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-2); }
+.headline-explain { margin: 8px 0 0; max-width: 70ch; font-size: 0.95rem; }
+.explain-more { margin-top: 8px; font-size: 0.88rem; color: var(--ink-2); }
+.explain-more summary { cursor: pointer; color: var(--accent); }
+.explain-more p { margin: 6px 0; max-width: 70ch; }
 .headline.agrees .headline-verdict strong { color: var(--good); }
 .headline.close .headline-verdict strong { color: var(--warn); }
 .headline.off .headline-verdict strong { color: var(--bad); }

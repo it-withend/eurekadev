@@ -44,6 +44,24 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
 
   useEffect(() => teardown, [teardown]);
 
+  // Phones pause sensors in background tabs: switching apps mid-measurement
+  // would silently produce a broken recording, so abort with an explanation.
+  const active = state.phase === 'countdown' || state.phase === 'recording';
+  useEffect(() => {
+    if (!active) return;
+    const onHide = () => {
+      if (!document.hidden) return;
+      teardown();
+      setState({
+        phase: 'error',
+        message: 'Measurement stopped because the app went to the background.',
+        hint: 'Keep PocketLab open on screen until the double beep.',
+      });
+    };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, [active, teardown]);
+
   const fail = (e: unknown) => {
     teardown();
     if (e instanceof SensorError) setState({ phase: 'error', message: e.message, hint: e.hint });

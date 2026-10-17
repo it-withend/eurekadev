@@ -23,9 +23,14 @@ export function niceTicks(min: number, max: number, target = 5): number[] {
   }
   const raw = (max - min) / target;
   const mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? 10 * mag;
+  // Tolerance: (9.9 − 9.7) / 4 is 0.0500000000000003 in floating point, which should still pick 0.05.
+  const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw * (1 - 1e-9)) ?? 10 * mag;
+  const first = Math.ceil(min / step - 1e-9);
+  const last = Math.floor(max / step + 1e-9);
+  const decimals = Math.max(0, -Math.floor(Math.log10(step)) + 1);
   const ticks: number[] = [];
-  for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-9; v += step) ticks.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+  // Multiply instead of accumulating, then round away float noise (9.700000000000001).
+  for (let i = first; i <= last; i++) ticks.push(Number((i * step).toFixed(decimals)) || 0);
   return ticks;
 }
 

@@ -1,5 +1,5 @@
 import { dominantFrequency } from '@dsp/fft';
-import { readParam } from '@core/registry';
+import { readParam } from '@core/params';
 import type { AnalysisResult, ParamSpec, Recording } from '@core/types';
 import { fmt, line, points, timeAxis } from '../shared';
 
@@ -7,8 +7,8 @@ export const CLOSED = 0;
 export const OPEN = 1;
 
 export const resonanceParams: ParamSpec[] = [
-  { kind: 'number', id: 'length', label: 'Tube length L', unit: 'm', default: 0.3, min: 0.05, max: 3, step: 0.001, help: 'Inside length of the air column.' },
-  { kind: 'number', id: 'diameter', label: 'Inner diameter d', unit: 'm', default: 0.04, min: 0.005, max: 0.3, step: 0.001 },
+  { kind: 'number', id: 'length', label: 'Tube length L', unit: 'cm', scale: 0.01, default: 30, min: 5, max: 300, step: 0.1, help: 'Inside length of the air column (for a glass: from the bottom inside to the rim).' },
+  { kind: 'number', id: 'diameter', label: 'Inner diameter d', unit: 'cm', scale: 0.01, default: 4, min: 0.5, max: 30, step: 0.1 },
   { kind: 'number', id: 'temperature', label: 'Air temperature', unit: '°C', default: 20, min: -20, max: 45, step: 0.5, help: 'Room temperature; used for the reference value.' },
   {
     kind: 'choice',
@@ -20,7 +20,7 @@ export const resonanceParams: ParamSpec[] = [
       { value: OPEN, label: 'Open at both ends (pipe, paper roll)' },
     ],
   },
-  { kind: 'number', id: 'lengthUncertainty', label: 'Length uncertainty ΔL', unit: 'm', default: 0.002, min: 0, max: 0.05, step: 0.001 },
+  { kind: 'number', id: 'lengthUncertainty', label: 'Length uncertainty ΔL', unit: 'cm', scale: 0.01, default: 0.2, min: 0, max: 5, step: 0.1 },
 ];
 
 /** Speed of sound in dry air, ideal-gas temperature dependence. */

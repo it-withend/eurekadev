@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { summarizeTrials } from '@core/aggregate';
-import { parseRecording } from '@core/recording';
+import { parseRecording, withParams } from '@core/recording';
 import type { AnalysisResult, ExperimentDefinition, Recording, TrialData } from '@core/types';
 import { load, saveList } from '../storage';
 
@@ -70,6 +70,11 @@ export function useTrials(def: ExperimentDefinition) {
     setSelectedId(created[created.length - 1]?.id ?? null);
   };
 
+  /** Fixes the parameters of an existing trial (e.g. L entered after recording); re-analysis follows. */
+  const updateParams = (id: string, params: Record<string, number>) => {
+    setTrials((prev) => prev.map((t) => (t.id === id ? { ...t, recording: withParams(t.recording, params) } : t)));
+  };
+
   const remove = (id: string) => {
     setTrials((prev) => prev.filter((t) => t.id !== id));
     setSelectedId((cur) => (cur === id ? null : cur));
@@ -82,5 +87,5 @@ export function useTrials(def: ExperimentDefinition) {
 
   const selected = analyzed.find((t) => t.id === selectedId) ?? analyzed[analyzed.length - 1] ?? null;
 
-  return { trials: analyzed, selected, select: setSelectedId, summary, add, addMany, remove, clear };
+  return { trials: analyzed, selected, select: setSelectedId, summary, add, addMany, updateParams, remove, clear };
 }

@@ -3,6 +3,7 @@ import { CatalogPage } from '@ui/pages/CatalogPage';
 import { ExperimentPage } from '@ui/pages/ExperimentPage';
 import { AboutPage } from '@ui/pages/AboutPage';
 import { SensorCheckPage } from '@ui/pages/SensorCheckPage';
+import { ErrorBoundary } from '@ui/components/ErrorBoundary';
 import { href, useRoute } from '@ui/router';
 
 export function App() {
@@ -27,18 +28,20 @@ export function App() {
       </header>
 
       <main>
-        {route.page === 'about' && <AboutPage />}
-        {route.page === 'sensors' && <SensorCheckPage />}
-        {route.page === 'catalog' && <CatalogPage registry={registry} />}
-        {route.page === 'experiment' &&
-          (def ? (
-            // `key` resets all page state when switching experiments.
-            <ExperimentPage key={def.id} def={def} />
-          ) : (
-            <p className="prose">
-              Experiment not found. <a href={href({ page: 'catalog' })}>See all experiments</a>.
-            </p>
-          ))}
+        {/* Keyed by route: navigating away clears a crashed page. */}
+        <ErrorBoundary key={href(route)}>
+          {route.page === 'about' && <AboutPage />}
+          {route.page === 'sensors' && <SensorCheckPage />}
+          {route.page === 'catalog' && <CatalogPage registry={registry} />}
+          {route.page === 'experiment' &&
+            (def ? (
+              <ExperimentPage key={def.id} def={def} />
+            ) : (
+              <p className="prose">
+                Experiment not found. <a href={href({ page: 'catalog' })}>See all experiments</a>.
+              </p>
+            ))}
+        </ErrorBoundary>
       </main>
 
       <footer className="footer no-print">

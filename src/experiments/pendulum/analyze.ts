@@ -10,7 +10,7 @@ import {
   std,
   variance,
 } from '@dsp/index';
-import { readParam } from '@core/registry';
+import { readParam } from '@core/params';
 import type { AnalysisResult, ParamSpec, Recording, TrialData } from '@core/types';
 import { ACCEL, GYRO, dominantChannel, fmt, line, points, timeAxis } from '../shared';
 
@@ -21,23 +21,25 @@ export const pendulumParams: ParamSpec[] = [
     kind: 'number',
     id: 'length',
     label: 'Pendulum length L',
-    unit: 'm',
-    default: 1,
-    min: 0.1,
-    max: 5,
-    step: 0.01,
+    unit: 'cm',
+    scale: 0.01,
+    default: 100,
+    min: 10,
+    max: 500,
+    step: 0.5,
     help: 'From the pivot point to the centre of the phone.',
   },
   {
     kind: 'number',
     id: 'lengthUncertainty',
     label: 'Length uncertainty ΔL',
-    unit: 'm',
-    default: 0.005,
+    unit: 'cm',
+    scale: 0.01,
+    default: 0.5,
     min: 0,
-    max: 0.1,
-    step: 0.001,
-    help: 'How precisely you measured L (half the smallest ruler division is a fair start).',
+    max: 10,
+    step: 0.1,
+    help: 'How precisely you could measure L. 0.5 cm is typical for a tape measure.',
   },
 ];
 
