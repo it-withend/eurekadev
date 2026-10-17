@@ -34,6 +34,13 @@ describe('verdict', () => {
     expect(agreement(c(12, 0.1)).verdict).toBe('off');
   });
 
+  it('counts the uncertainty of the reference (a ruler reading) too', () => {
+    // 27.0 ± 0.03 cm vs a ruler reading 27.3 ± 0.5 cm: consistent.
+    const ruler: Comparison = { ...c(27.0, 0.03), accepted: 27.3, acceptedUncertainty: 0.5 };
+    expect(agreement(ruler).verdict).toBe('agrees');
+    expect(agreement({ ...ruler, acceptedUncertainty: 0 }).verdict).toBe('close');
+  });
+
   it('never praises a result whose uncertainty is huge', () => {
     // 14 ± 22 is "within 2σ" of 9.81 but measures nothing.
     expect(agreement(c(14.4, 22.3)).verdict).toBe('imprecise');

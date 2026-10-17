@@ -1,4 +1,4 @@
-import { variance, mean } from '@dsp/stats';
+import { variance } from '@dsp/stats';
 import type { Recording, Series } from '@core/types';
 
 export const GYRO = ['gx', 'gy', 'gz'] as const;
@@ -12,18 +12,6 @@ export function dominantChannel(rec: Recording, names: readonly string[]): { nam
     if (!data) continue;
     const v = variance(data);
     if (v > best.variance) best = { name, data, variance: v };
-  }
-  return best;
-}
-
-/** The channel among `names` with the largest mean magnitude (a steady rotation axis). */
-export function steadiestChannel(rec: Recording, names: readonly string[]): { name: string; data: number[] } {
-  let best = { name: names[0], data: rec.channels[names[0]] ?? [], score: -1 };
-  for (const name of names) {
-    const data = rec.channels[name];
-    if (!data) continue;
-    const score = Math.abs(mean(data));
-    if (score > best.score) best = { name, data, score };
   }
   return best;
 }

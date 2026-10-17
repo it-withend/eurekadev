@@ -130,24 +130,39 @@ export function synthCentripetal(o: {
   seconds?: number;
   sampleRate?: number;
   seed?: number;
+  /**
+   * Gyroscope channel that carries the spin. Real browsers disagree on how
+   * rotationRate alpha/beta/gamma map to axes (iOS Safari differs), so the
+   * spin of a flat phone can show up on any channel.
+   */
+  spinChannel?: 'gx' | 'gy' | 'gz';
+  /** Seat tilt in degrees: part of gravity leaks into the horizontal axes. */
+  tiltDeg?: number;
+  /** Speed profile: free spin-down, or a chair pushed by hand once per turn (as in a real iPhone test). */
+  profile?: 'decay' | 'pushed';
 }): Recording {
   const sr = o.sampleRate ?? 100;
   const n = Math.round((o.seconds ?? 20) * sr);
   const w0 = o.omega0 ?? 7;
   const tau = o.decaySeconds ?? 9;
   const r = rng(o.seed ?? 3);
+  const tilt = ((o.tiltDeg ?? 0) * Math.PI) / 180;
+  const spin = o.spinChannel ?? 'gz';
   const ch = { ax: [] as number[], ay: [] as number[], az: [] as number[], gx: [] as number[], gy: [] as number[], gz: [] as number[] };
+  const speed = (t: number) =>
+    o.profile === 'pushed'
+      ? Math.min(w0 * t, 2 + 0.9 * Math.sin((2 * Math.PI * t) / 3.2))
+      : t < 1
+        ? w0 * t
+        : w0 * Math.exp(-(t - 1) / tau); // spin up for 1 s, then friction slows it down
   for (let i = 0; i < n; i++) {
     const t = i / sr;
-    // Spin up during the first second, then friction slows the chair down.
-    const w = t < 1 ? w0 * t : w0 * Math.exp(-(t - 1) / tau);
-    const dw = t < 1 ? w0 : -w / tau;
-    ch.gz.push(w + 0.02 * r.gauss());
-    ch.gx.push(0.03 * r.gauss());
-    ch.gy.push(0.03 * r.gauss());
+    const w = speed(t);
+    const dw = (speed(t + 1e-3) - w) / 1e-3;
+    for (const g of ['gx', 'gy', 'gz'] as const) ch[g].push((g === spin ? w : 0) + 0.03 * r.gauss());
     ch.ax.push(-w * w * o.radius + 0.08 * r.gauss());
-    ch.ay.push(dw * o.radius + 0.08 * r.gauss());
-    ch.az.push(9.81 + 0.08 * r.gauss());
+    ch.ay.push(dw * o.radius + 9.81 * Math.sin(tilt) + 0.08 * r.gauss());
+    ch.az.push(9.81 * Math.cos(tilt) + 0.08 * r.gauss());
   }
   return createRecording({
     experimentId: 'centripetal',

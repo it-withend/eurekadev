@@ -84,6 +84,8 @@ export function analyzeResonance(rec: Recording): AnalysisResult {
       measured: v,
       uncertainty: dv,
       accepted: vRef,
+      // A room thermometer reading is good to about ±1 °C ≈ ±0.6 m/s.
+      acceptedUncertainty: speedOfSound(temp + 1) - vRef,
       acceptedSource: `dry air at ${fmt(temp, 1)} °C, v = 331.3·√(1 + T/273.15)`,
       unit: 'm/s',
       digits: 1,

@@ -15,7 +15,9 @@ function Headline({ c }: { c: Comparison }) {
         <span className="unit"> {c.unit}</span>
       </div>
       <div className="headline-ref">
-        Accepted: {f(c.accepted, c.digits)} {c.unit} <span className="src">({c.acceptedSource})</span>
+        Accepted: {f(c.accepted, c.digits)}
+        {c.acceptedUncertainty ? ` ± ${f(c.acceptedUncertainty, c.digits)}` : ''} {c.unit}{' '}
+        <span className="src">({c.acceptedSource})</span>
       </div>
       <div className="headline-verdict">
         <strong>{VERDICT_TITLE[a.verdict]}</strong>

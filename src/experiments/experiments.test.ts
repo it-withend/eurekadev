@@ -100,8 +100,24 @@ describe('resonance', () => {
 describe('centripetal', () => {
   it('recovers the radius from the slope of a vs ω²', () => {
     const r = expectOk(centripetal.analyze(synthCentripetal({ radius: 0.3 })));
-    expect(Math.abs(r.primary.measured - 0.3)).toBeLessThan(0.01);
+    expect(Math.abs(r.primary.measured - 30)).toBeLessThan(1);
     expect(r.measurements[0].value).toBeGreaterThan(0.98);
+  });
+
+  it('works whichever gyroscope channel carries the spin (iPhone axis labels)', () => {
+    // Regression: a real iPhone test reported the spin on gy; gravity then leaked into
+    // the "centripetal" axes and gave r = 0.2 cm instead of 25 cm.
+    for (const spinChannel of ['gx', 'gy', 'gz'] as const) {
+      const rec = synthCentripetal({ radius: 0.25, profile: 'pushed', spinChannel, seed: 8 });
+      const r = expectOk(centripetal.analyze(rec));
+      expect(Math.abs(r.primary.measured - 25)).toBeLessThan(1); // reported in cm
+    }
+  });
+
+  it('separates gravity from centripetal acceleration on a tilted seat', () => {
+    const r = expectOk(centripetal.analyze(synthCentripetal({ radius: 0.3, tiltDeg: 8, seed: 9 })));
+    expect(Math.abs(r.primary.measured - 30)).toBeLessThan(1);
+    expect(r.values?.gravity).toBeCloseTo(9.81, 1);
   });
 
   it('asks for a faster spin when there is not enough data', () => {

@@ -13,7 +13,9 @@ const MAX_RELATIVE_UNCERTAINTY = 0.1;
 export function agreement(c: Comparison): { errorPct: number; sigmas: number; verdict: Verdict } {
   const diff = c.measured - c.accepted;
   const errorPct = (Math.abs(diff) / Math.abs(c.accepted)) * 100;
-  const sigmas = c.uncertainty > 0 ? Math.abs(diff) / c.uncertainty : Infinity;
+  // Both sides can be uncertain (a ruler reading is), so combine them.
+  const combined = Math.hypot(c.uncertainty, c.acceptedUncertainty ?? 0);
+  const sigmas = combined > 0 ? Math.abs(diff) / combined : Infinity;
   const relative = c.uncertainty / Math.abs(c.measured || c.accepted);
   const verdict: Verdict =
     relative > MAX_RELATIVE_UNCERTAINTY ? 'imprecise' : sigmas <= 2 ? 'agrees' : errorPct <= 5 ? 'close' : 'off';

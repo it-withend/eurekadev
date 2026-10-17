@@ -247,6 +247,7 @@ progress { width: 100%; accent-color: var(--accent); height: 6px; }
 .bad { color: var(--bad); }
 button.icon { padding: 2px 9px; font-size: 1.1rem; line-height: 1.2; color: var(--ink-2); }
 .result-block { margin-top: 24px; }
+.block-title .tag, .block-title button { text-transform: none; letter-spacing: 0; }
 .block-title { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--ink); font-size: 0.85rem; margin: 0 0 10px; }
 
 /* Worksheet */

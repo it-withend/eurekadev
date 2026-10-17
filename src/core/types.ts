@@ -77,6 +77,8 @@ export interface Comparison {
   measured: number;
   uncertainty: number;
   accepted: number;
+  /** Uncertainty of the reference itself (e.g. a ruler reading); 0 for constants. */
+  acceptedUncertainty?: number;
   acceptedSource: string;
   unit: string;
   digits: number;

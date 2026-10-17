@@ -15,6 +15,8 @@ import type { AnalysisResult, ParamSpec, Recording, TrialData } from '@core/type
 import { ACCEL, GYRO, dominantChannel, fmt, line, points, timeAxis } from '../shared';
 
 export const STANDARD_GRAVITY = 9.80665;
+/** Local g ranges from ≈ 9.78 (equator) to 9.83 m/s² (poles); we do not know where the student is. */
+const LOCAL_G_SPREAD = 0.025;
 
 export const pendulumParams: ParamSpec[] = [
   {
@@ -130,6 +132,7 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
       measured: g,
       uncertainty: dg,
       accepted: STANDARD_GRAVITY,
+      acceptedUncertainty: LOCAL_G_SPREAD,
       acceptedSource: 'standard gravity (local g varies 9.78–9.83 m/s²)',
       unit: 'm/s²',
       digits: 3,
@@ -207,6 +210,7 @@ export function summarizePendulum(trials: TrialData[]): AnalysisResult | null {
       measured: g,
       uncertainty: dg,
       accepted: STANDARD_GRAVITY,
+      acceptedUncertainty: LOCAL_G_SPREAD,
       acceptedSource: 'standard gravity (local g varies 9.78–9.83 m/s²)',
       unit: 'm/s²',
       digits: 3,
