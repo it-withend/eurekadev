@@ -34,6 +34,10 @@ export function synthPendulum(o: {
   qualityFactor?: number;
   noise?: number;
   seed?: number;
+  /** Torsional twisting of the phone around the string (larger than the swing signal if strong). */
+  twist?: { amplitude: number; period: number };
+  /** Simulate a phone without a gyroscope. */
+  noGyro?: boolean;
 }): Recording {
   const g = o.g ?? 9.81;
   const L = o.length;
@@ -53,9 +57,11 @@ export function synthPendulum(o: {
   const f = (t: number, w: number) => -(g / L) * Math.sin(t) - damping * w;
   const bias = 0.01;
   for (let i = 0; i < n; i++) {
-    ch.gx.push(om + bias + noise * r.gauss());
-    ch.gy.push(noise * r.gauss());
-    ch.gz.push(noise * r.gauss());
+    const twist = o.twist ? o.twist.amplitude * Math.sin((2 * Math.PI * i) / sr / o.twist.period) : 0;
+    const gyroOn = o.noGyro ? 0 : 1;
+    ch.gx.push(gyroOn * (om + bias + noise * r.gauss()));
+    ch.gy.push(gyroOn * (twist + noise * r.gauss()));
+    ch.gz.push(gyroOn * noise * r.gauss());
     // A swinging phone feels no tangential force: only tension along the string.
     ch.ax.push(noise * 5 * r.gauss());
     ch.ay.push(g * Math.cos(th) + L * om * om + noise * 5 * r.gauss());

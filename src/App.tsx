@@ -2,6 +2,7 @@ import { registry } from '@experiments/index';
 import { CatalogPage } from '@ui/pages/CatalogPage';
 import { ExperimentPage } from '@ui/pages/ExperimentPage';
 import { AboutPage } from '@ui/pages/AboutPage';
+import { SensorCheckPage } from '@ui/pages/SensorCheckPage';
 import { href, useRoute } from '@ui/router';
 
 export function App() {
@@ -20,12 +21,14 @@ export function App() {
         </a>
         <nav>
           <a href={href({ page: 'catalog' })}>Experiments</a>
+          <a href={href({ page: 'sensors' })}>Sensor check</a>
           <a href={href({ page: 'about' })}>About</a>
         </nav>
       </header>
 
       <main>
         {route.page === 'about' && <AboutPage />}
+        {route.page === 'sensors' && <SensorCheckPage />}
         {route.page === 'catalog' && <CatalogPage registry={registry} />}
         {route.page === 'experiment' &&
           (def ? (

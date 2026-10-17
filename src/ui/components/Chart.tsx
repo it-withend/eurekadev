@@ -2,12 +2,19 @@ import { useEffect, useRef } from 'react';
 import type { ChartSpec } from '@core/types';
 import { drawChart } from './chartDraw';
 
-/** Redraws on resize and on light/dark theme changes. */
-function useRedraw(draw: () => void, deps: unknown[]) {
+export function Chart({ spec }: { spec: ChartSpec }) {
   const ref = useRef<HTMLCanvasElement>(null);
+
+  // Redraw when the data changes, on resize, and on light/dark theme switches.
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
+    const draw = () =>
+      drawChart(
+        canvas,
+        spec.series.map((s, i) => ({ x: s.x, y: s.y, style: s.style, color: s.color ?? i })),
+        { xLabel: spec.xLabel, yLabel: spec.yLabel },
+      );
     draw();
     const ro = new ResizeObserver(draw);
     ro.observe(canvas);
@@ -17,19 +24,8 @@ function useRedraw(draw: () => void, deps: unknown[]) {
       ro.disconnect();
       mq.removeEventListener('change', draw);
     };
-  }, deps);
-  return ref;
-}
-
-export function Chart({ spec }: { spec: ChartSpec }) {
-  const ref = useRedraw(() => {
-    if (!ref.current) return;
-    drawChart(
-      ref.current,
-      spec.series.map((s, i) => ({ x: s.x, y: s.y, style: s.style, color: s.color ?? i })),
-      { xLabel: spec.xLabel, yLabel: spec.yLabel },
-    );
   }, [spec]);
+
   return (
     <figure className="chart">
       <figcaption>

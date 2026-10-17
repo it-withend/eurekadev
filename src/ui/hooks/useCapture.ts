@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRecording } from '@core/recording';
 import { createSensor, SensorError, type SensorSource } from '@core/sensors';
 import type { ExperimentDefinition, Recording } from '@core/types';
+import { cues, keepAwake, unlockAudio } from '../feedback';
 
 export type CapturePhase =
   | { phase: 'idle' }
@@ -16,8 +17,6 @@ export interface LiveBuffer {
   v: number[];
 }
 
-const COUNTDOWN = 3;
-
 /**
  * Drives one measurement: permission → countdown → capture → Recording.
  * All hardware details live in core/sensors; this hook only sequences them.
@@ -27,25 +26,26 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
   const live = useRef<LiveBuffer>({ t: [], v: [] });
   const sensor = useRef<SensorSource | null>(null);
   const timers = useRef<number[]>([]);
+  const releaseWakeLock = useRef<() => void>(() => undefined);
 
-  const clearTimers = () => {
+  const teardown = useCallback(() => {
     timers.current.forEach((id) => window.clearInterval(id));
     timers.current = [];
-  };
-
-  const cancel = useCallback(() => {
-    clearTimers();
     sensor.current?.dispose();
     sensor.current = null;
-    setState({ phase: 'idle' });
+    releaseWakeLock.current();
+    releaseWakeLock.current = () => undefined;
   }, []);
 
-  useEffect(() => cancel, [cancel]);
+  const cancel = useCallback(() => {
+    teardown();
+    setState({ phase: 'idle' });
+  }, [teardown]);
+
+  useEffect(() => teardown, [teardown]);
 
   const fail = (e: unknown) => {
-    clearTimers();
-    sensor.current?.dispose();
-    sensor.current = null;
+    teardown();
     if (e instanceof SensorError) setState({ phase: 'error', message: e.message, hint: e.hint });
     else setState({ phase: 'error', message: e instanceof Error ? e.message : String(e) });
   };
@@ -71,6 +71,8 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
       try {
         const capture = s.stop();
         sensor.current = null;
+        teardown();
+        cues.stop();
         setState({ phase: 'idle' });
         onRecorded(
           createRecording({
@@ -92,17 +94,26 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
 
   /** Must be invoked directly from a click handler (iOS permission prompts). */
   const start = (params: Record<string, number>) => {
+    unlockAudio();
     const s = createSensor(def.sensor);
     sensor.current = s;
     setState({ phase: 'preparing' });
-    s.prepare().then(() => {
-      let remaining = COUNTDOWN;
+    s.prepare().then(async () => {
+      releaseWakeLock.current = await keepAwake();
+      let remaining = def.countdownSec ?? 3;
       setState({ phase: 'countdown', remaining });
+      cues.tick();
       const countdown = window.setInterval(() => {
         remaining -= 1;
-        if (remaining > 0) return setState({ phase: 'countdown', remaining });
+        if (remaining > 0) {
+          cues.tick();
+          return setState({ phase: 'countdown', remaining });
+        }
         window.clearInterval(countdown);
-        record(s, params);
+        cues.start();
+        // Let the start beep die away before a microphone starts listening.
+        if (def.sensor === 'audio') timers.current.push(window.setTimeout(() => record(s, params), 400));
+        else record(s, params);
       }, 1000);
       timers.current.push(countdown);
     }, fail);

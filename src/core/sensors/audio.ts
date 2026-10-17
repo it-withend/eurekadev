@@ -27,8 +27,10 @@ export class AudioSource implements SensorSource {
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new SensorError('Microphone access is not available.', 'Use https and a modern browser.');
     }
-    // Create the context inside the user gesture so it is allowed to run.
+    // Create and resume the context synchronously inside the user gesture:
+    // iOS Safari refuses to start audio from a timer later on.
     this.ctx = new AudioContext();
+    void this.ctx.resume();
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },

@@ -13,8 +13,17 @@ import { synthCentripetal, synthPendulum, synthResonance } from '../src/testing/
 const out = join(process.cwd(), 'public', 'datasets');
 mkdirSync(out, { recursive: true });
 
+// The pendulum sample is a small investigation: four lengths, so the
+// T² vs L fit can be explored without a phone.
+const pendulumLengths = [0.45, 0.68, 0.92, 1.2];
+
 const datasets = {
-  'pendulum-demo.json': synthPendulum({ length: 0.92, g: 9.807, theta0: 0.22, seconds: 25, noise: 0.03, seed: 11 }),
+  ...Object.fromEntries(
+    pendulumLengths.map((L, i) => [
+      `pendulum-demo-${i + 1}.json`,
+      synthPendulum({ length: L, g: 9.807, theta0: 0.18 + 0.03 * i, seconds: 25, noise: 0.03, seed: 11 + i }),
+    ]),
+  ),
   'resonance-demo.json': synthResonance({ length: 0.24, diameter: 0.065, temperature: 21, seconds: 3, seed: 12 }),
   'centripetal-demo.json': synthCentripetal({ radius: 0.27, omega0: 7.5, seconds: 20, seed: 13 }),
 };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { synthCentripetal, synthPendulum, synthResonance } from '@testing/synthetic';
 import { parseRecording, withParams } from '@core/recording';
+import { summarizeTrials } from '@core/aggregate';
 import type { AnalysisResult } from '@core/types';
 import { registry } from './index';
 import { speedOfSound } from './resonance/analyze';
@@ -39,6 +40,41 @@ describe('pendulum', () => {
     const a = expectOk(pendulum.analyze(rec)).primary.measured;
     const b = expectOk(pendulum.analyze(withParams(rec, { length: 2 }))).primary.measured;
     expect(b / a).toBeCloseTo(2, 6);
+  });
+
+  it('ignores the phone twisting on the string', () => {
+    // Twist is 3× stronger than the swing but at a different frequency.
+    const rec = synthPendulum({ length: 1, g: 9.81, theta0: 0.15, twist: { amplitude: 1.5, period: 4.7 }, seed: 5 });
+    const r = expectOk(pendulum.analyze(rec));
+    expect(Math.abs(r.primary.measured - 9.81) / 9.81).toBeLessThan(0.01);
+  });
+
+  it('falls back to the accelerometer (tension oscillates twice per swing)', () => {
+    const rec = synthPendulum({ length: 0.8, g: 9.81, theta0: 0.3, noGyro: true, seed: 6 });
+    const r = expectOk(pendulum.analyze(rec));
+    expect(Math.abs(r.primary.measured - 9.81) / 9.81).toBeLessThan(0.02);
+    expect(r.warnings.join(' ')).toMatch(/No gyroscope/);
+  });
+
+  it('fits T² against L when the length is varied across trials', () => {
+    const trials = [0.5, 0.75, 1.0, 1.25].map((L, i) => {
+      // A constant 3 cm error in where L is measured from must not affect g.
+      const rec = withParams(synthPendulum({ length: L, g: 9.81, theta0: 0.15, seed: 20 + i }), { length: L - 0.03 });
+      return { recording: rec, result: expectOk(pendulum.analyze(rec)) };
+    });
+    const s = expectOk(summarizeTrials(pendulum, trials)!);
+    expect(s.primary.quantity).toMatch(/T² vs L/);
+    expect(Math.abs(s.primary.measured - 9.81) / 9.81).toBeLessThan(0.01);
+  });
+
+  it('averages repeated trials at one length', () => {
+    const trials = [1, 2, 3].map((seed) => {
+      const rec = synthPendulum({ length: 1, g: 9.81, seed });
+      return { recording: rec, result: expectOk(pendulum.analyze(rec)) };
+    });
+    const s = expectOk(summarizeTrials(pendulum, trials)!);
+    expect(s.measurements[0].value).toBe(3);
+    expect(Math.abs(s.primary.measured - 9.81) / 9.81).toBeLessThan(0.005);
   });
 
   it('fails gracefully when the phone is still', () => {

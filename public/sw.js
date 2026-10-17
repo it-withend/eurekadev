@@ -1,6 +1,7 @@
-// Stale-while-revalidate cache for the app shell, sample data and fonts,
-// so PocketLab keeps working offline after the first visit.
-const CACHE = 'pocketlab-v1';
+// Offline support. Pages: network-first (a new deploy shows up immediately,
+// the cached copy is used offline). Assets, sample data and fonts:
+// stale-while-revalidate (instant, refreshed in the background).
+const CACHE = 'pocketlab-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -13,22 +14,34 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE);
+  try {
+    const res = await fetch(request);
+    if (res.ok) cache.put(request, res.clone());
+    return res;
+  } catch {
+    return (await cache.match(request)) || (await cache.match('/')) || Response.error();
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  const network = fetch(request)
+    .then((res) => {
+      if (res.ok) cache.put(request, res.clone());
+      return res;
+    })
+    .catch(() => cached);
+  return cached || network;
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  const cacheable = url.origin === self.location.origin || url.hostname.endsWith('fonts.gstatic.com') || url.hostname.endsWith('fonts.googleapis.com');
-  if (!cacheable) return;
-  event.respondWith(
-    caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(request);
-      const network = fetch(request)
-        .then((res) => {
-          if (res.ok) cache.put(request, res.clone());
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    }),
-  );
+  if (request.mode === 'navigate') return event.respondWith(networkFirst(request));
+  const cacheable = url.origin === self.location.origin || /(^|\.)fonts\.(gstatic|googleapis)\.com$/.test(url.hostname);
+  if (cacheable) event.respondWith(staleWhileRevalidate(request));
 });

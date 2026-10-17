@@ -62,7 +62,9 @@ export const myExperiment: ExperimentDefinition = {
   materials: ['…'],
   instructions: ['…'],
   theory: { summary: '…', formula: 'T = 2π√(m/k)' },
-  demoDataset: 'datasets/my-experiment-demo.json',
+  illustration: mySvgMarkup,   // optional setup diagram (static SVG string)
+  errorSources: ['…'],         // shown in the worksheet discussion
+  demoDatasets: ['datasets/my-experiment-demo.json'],
   preview: (s) => s.gz,        // one number per live sample
   previewLabel: 'rotation (rad/s)',
   analyze: analyzeMine,

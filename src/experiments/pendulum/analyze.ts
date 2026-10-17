@@ -1,6 +1,17 @@
-import { detrend, dominantFrequency, estimatePeriod, lowPass, std } from '@dsp/index';
+import {
+  bandPower,
+  detrend,
+  dominantFrequency,
+  estimatePeriod,
+  linearRegression,
+  lowPass,
+  nextPow2,
+  powerSpectrum,
+  std,
+  variance,
+} from '@dsp/index';
 import { readParam } from '@core/registry';
-import type { AnalysisResult, Recording, ParamSpec } from '@core/types';
+import type { AnalysisResult, ParamSpec, Recording, TrialData } from '@core/types';
 import { ACCEL, GYRO, dominantChannel, fmt, line, points, timeAxis } from '../shared';
 
 export const STANDARD_GRAVITY = 9.80665;
@@ -46,28 +57,24 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
   const sr = rec.sampleRate;
   const warnings: string[] = [];
 
-  let source = dominantChannel(rec, GYRO);
-  const hasGyro = source.variance > 1e-4;
-  if (!hasGyro) {
-    source = dominantChannel(rec, ACCEL);
-    warnings.push('No gyroscope signal: using the accelerometer, so the large-swing correction is skipped.');
-  }
-  if (source.variance < 1e-4) {
+  const hasGyro = dominantChannel(rec, GYRO).variance > 1e-4;
+  if (!hasGyro) warnings.push('No gyroscope signal: using the accelerometer, so the large-swing correction is skipped.');
+  // String tension (seen by the accelerometer) peaks at both ends of the swing:
+  // it oscillates twice per period, so its period is T/2.
+  const periodFactor = hasGyro ? 1 : 2;
+  const source = pickSwingAxis(rec, hasGyro ? GYRO : ACCEL, L, periodFactor);
+  if (!source) {
     return { ok: false, error: 'No swinging motion detected.', hint: 'Let the phone swing freely on the string while recording.' };
   }
-
-  // Ignore the first second: hands releasing the phone.
-  const skip = Math.min(Math.round(sr), Math.floor(source.data.length / 4));
-  const raw = source.data.slice(skip);
-  const signal = lowPass(detrend(raw), sr, 3);
+  const signal = source.signal;
   const est = estimatePeriod(signal, sr);
   if (!est || est.cycles < 3) {
     return { ok: false, error: 'Fewer than 3 full swings were found.', hint: 'Record for longer and keep the swing going.' };
   }
   if (est.rejected > est.cycles / 3) warnings.push(`${est.rejected} irregular swings were discarded — try a smoother swing.`);
 
-  const T = est.period;
-  const dT = Math.max(est.uncertainty, 0.5 / sr / Math.sqrt(est.cycles));
+  const T = est.period * periodFactor;
+  const dT = Math.max(est.uncertainty, 0.5 / sr / Math.sqrt(est.cycles)) * periodFactor;
 
   let theta0 = 0;
   let correction = 1;
@@ -84,8 +91,9 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
   const relErr = Math.sqrt((dL / L) ** 2 + ((2 * dT) / T) ** 2);
   const dg = g * relErr;
 
-  const fft = dominantFrequency(signal, sr, { segmentSize: Math.min(signal.length, 4096), fMin: 0.1, fMax: 3 });
-  const Tfft = fft ? 1 / fft.peak.frequency : NaN;
+  const fMaxSearch = 3 * periodFactor;
+  const fft = dominantFrequency(signal, sr, { segmentSize: Math.min(signal.length, 4096), fMin: 0.1, fMax: fMaxSearch });
+  const Tfft = fft ? periodFactor / fft.peak.frequency : NaN;
   if (fft && Math.abs(Tfft - T) / T > 0.05) {
     warnings.push(`FFT period (${fmt(Tfft)} s) disagrees with zero-crossing period — the motion may not be a clean swing.`);
   }
@@ -95,7 +103,7 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
   const crossingsY = est.crossings.map(() => 0);
   const charts = [
     {
-      title: `Angular velocity (${source.name}, filtered)`,
+      title: hasGyro ? `Angular velocity (${source.name}, filtered)` : `String tension signal (${source.name}, filtered)`,
       xLabel: 'time (s)',
       yLabel: hasGyro ? 'ω (rad/s)' : 'a (m/s²)',
       series: [line('signal', t, signal, 0), points('zero crossings', est.crossings, crossingsY, 1)],
@@ -103,7 +111,7 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
   ];
   if (fft) {
     const { freqs, power } = fft.spectrum;
-    const lim = freqs.findIndex((f) => f > 3);
+    const lim = freqs.findIndex((f) => f > fMaxSearch);
     charts.push({
       title: 'Frequency spectrum',
       xLabel: 'frequency (Hz)',
@@ -133,7 +141,9 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
     ],
     charts,
     steps: [
-      `Found ${est.cycles} full swings on the ${source.name} axis; mean period T = ${fmt(T, 4)} ± ${fmt(dT, 4)} s.`,
+      hasGyro
+        ? `Found ${est.cycles} full swings on the ${source.name} axis; mean period T = ${fmt(T, 4)} ± ${fmt(dT, 4)} s.`
+        : `Found ${est.cycles} tension cycles on ${source.name}; tension peaks twice per swing, so T = 2 × ${fmt(est.period, 4)} = ${fmt(T, 4)} ± ${fmt(dT, 4)} s.`,
       hasGyro
         ? `Peak angular velocity gives amplitude θ₀ ≈ ${fmt((theta0 * 180) / Math.PI, 1)}°, so T₀ = T / (1 + θ₀²/16 + …) = ${fmt(T0, 4)} s.`
         : 'Amplitude unknown without a gyroscope: assuming small swings, T₀ = T.',
@@ -141,5 +151,87 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
       `Δg/g = √((ΔL/L)² + (2ΔT/T)²) = ${fmt(relErr * 100, 2)} %, so Δg = ${fmt(dg, 3)} m/s².`,
     ],
     warnings,
+    values: { L, T, T0, dT, g },
+  };
+}
+
+/**
+ * The swing axis is the one with the most power near the frequency a pendulum
+ * of the entered length should have (g anywhere in ≈ 6–16 m/s²). This ignores
+ * twisting of the phone on the string, which happens at other frequencies.
+ * L only selects the axis; it does not bias the measured period.
+ */
+function pickSwingAxis(rec: Recording, axes: readonly string[], L: number, periodFactor: number) {
+  const sr = rec.sampleRate;
+  const fExpected = (periodFactor * Math.sqrt(STANDARD_GRAVITY / L)) / (2 * Math.PI);
+  let best: { name: string; signal: Float64Array; score: number } | null = null;
+  for (const name of axes) {
+    const data = rec.channels[name];
+    if (!data || variance(data) < 1e-4) continue;
+    // Ignore the first second: hands releasing the phone.
+    const skip = Math.min(Math.round(sr), Math.floor(data.length / 4));
+    const signal = lowPass(detrend(data.slice(skip)), sr, 3 * periodFactor);
+    const score = bandPower(powerSpectrum(signal, sr, nextPow2(signal.length) * 2), fExpected * 0.78, fExpected * 1.28);
+    if (!best || score > best.score) best = { name, signal, score };
+  }
+  return best;
+}
+
+/**
+ * Several trials: if the length was varied (≥ 3 different lengths), fit
+ * T₀² = (4π²/g)·L — the classic school investigation — and get g from the
+ * slope. This also cancels a constant error in where L is measured from,
+ * which ends up in the intercept instead of in g.
+ */
+export function summarizePendulum(trials: TrialData[]): AnalysisResult | null {
+  const pts = trials
+    .map((t) => ({ L: t.result.values?.L, T0: t.result.values?.T0 }))
+    .filter((p): p is { L: number; T0: number } => p.L !== undefined && p.T0 !== undefined);
+  const lengths = pts.map((p) => p.L);
+  const distinct = new Set(lengths.map((l) => l.toFixed(3))).size;
+  if (distinct < 3 || Math.max(...lengths) / Math.min(...lengths) < 1.3) return null;
+
+  const x = lengths;
+  const y = pts.map((p) => p.T0 ** 2);
+  const fit = linearRegression(x, y);
+  const g = (4 * Math.PI ** 2) / fit.slope;
+  const dg = (g * fit.slopeStdErr) / fit.slope;
+  const xMax = Math.max(...x) * 1.05;
+  return {
+    ok: true,
+    primary: {
+      quantity: 'Gravitational acceleration from T² vs L',
+      symbol: 'g',
+      measured: g,
+      uncertainty: dg,
+      accepted: STANDARD_GRAVITY,
+      acceptedSource: 'standard gravity (local g varies 9.78–9.83 m/s²)',
+      unit: 'm/s²',
+      digits: 3,
+    },
+    measurements: [
+      { label: 'Slope 4π²/g', value: fit.slope, uncertainty: fit.slopeStdErr, unit: 's²/m', digits: 4 },
+      { label: 'Intercept', value: fit.intercept, uncertainty: fit.interceptStdErr, unit: 's²', digits: 4 },
+      { label: 'Linearity (R²)', value: fit.r2, unit: '', digits: 4 },
+      { label: 'Different lengths', value: distinct, unit: '', digits: 0 },
+    ],
+    charts: [
+      {
+        title: 'Period² against length',
+        xLabel: 'L (m)',
+        yLabel: 'T₀² (s²)',
+        series: [
+          { name: 'trials', x, y, style: 'points', color: 0 },
+          { name: 'best fit', x: [0, xMax], y: [fit.intercept, fit.intercept + fit.slope * xMax], style: 'line', color: 1 },
+        ],
+      },
+    ],
+    steps: [
+      `Squaring T = 2π√(L/g) gives T² = (4π²/g)·L: a straight line through the origin.`,
+      `Least-squares fit of ${pts.length} trials: T₀² = ${fmt(fit.slope, 4)}·L + ${fmt(fit.intercept, 4)}, R² = ${fmt(fit.r2, 4)}.`,
+      `g = 4π² / slope = 4π² / ${fmt(fit.slope, 4)} = ${fmt(g, 3)} ± ${fmt(dg, 3)} m/s².`,
+      `A non-zero intercept means L was measured to the wrong point by a constant offset — the slope (and g) is unaffected.`,
+    ],
+    warnings: fit.r2 < 0.99 ? [`Points are scattered (R² = ${fmt(fit.r2, 3)}). Repeat trials that look off.`] : [],
   };
 }

@@ -101,8 +101,18 @@ export type AnalysisResult =
       /** Human-readable derivation with the actual numbers plugged in. */
       steps: string[];
       warnings: string[];
+      /** Machine-readable intermediate values (e.g. period T) for multi-trial summaries. */
+      values?: Record<string, number>;
     }
   | { ok: false; error: string; hint?: string };
+
+export type SuccessfulAnalysis = Extract<AnalysisResult, { ok: true }>;
+
+/** One repetition of an experiment, as fed to multi-trial summaries. */
+export interface TrialData {
+  recording: Recording;
+  result: SuccessfulAnalysis;
+}
 
 /**
  * The plugin contract. An experiment is pure data + one pure function:
@@ -116,18 +126,33 @@ export interface ExperimentDefinition {
   sensor: SensorKind;
   /** Capture length in seconds. */
   durationSec: number;
+  /** Seconds between pressing Start and recording, to get into position. Default 3. */
+  countdownSec?: number;
   params: ParamSpec[];
   materials: string[];
   instructions: string[];
+  /**
+   * Setup diagram as static SVG markup (kept framework-free so plugins never
+   * depend on the UI). Use `currentColor` and the CSS variables --accent / --ink-2.
+   */
+  illustration?: string;
+  /** Things that commonly go wrong, shown in the lab report's discussion. */
+  errorSources?: string[];
   theory: {
     summary: string;
     /** Plain-text formula shown to the student, e.g. "g = 4π²L / T²". */
     formula: string;
   };
-  /** Path (under /public) of a bundled sample recording. */
-  demoDataset?: string;
+  /** Paths (under /public) of bundled sample recordings, loaded together as trials. */
+  demoDatasets?: string[];
   /** Live-preview channel selector: one number per incoming sample. */
   preview: (sample: Record<string, number>) => number;
   previewLabel: string;
   analyze: (recording: Recording) => AnalysisResult;
+  /**
+   * Combines several trials (≥ 2) into one result — e.g. a T² vs L fit when
+   * the pendulum length was varied. Return null to fall back to the default
+   * mean ± standard error of the primary quantity.
+   */
+  summarize?: (trials: TrialData[]) => AnalysisResult | null;
 }

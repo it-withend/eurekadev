@@ -102,7 +102,7 @@ main { padding: 32px 0 64px; min-height: 70vh; }
 .panel { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 22px; min-width: 0; }
 .panel ul, .panel ol { padding-left: 1.2em; margin: 0.4em 0; }
 .panel li { margin: 0.25em 0; }
-.formula, .formula-block { display: block; font-size: 1.05rem; padding: 12px 14px; background: var(--paper); border-radius: 8px; margin: 12px 0; overflow-x: auto; }
+.formula { display: block; font-size: 1.05rem; padding: 12px 14px; background: var(--paper); border-radius: 8px; margin: 12px 0; overflow-x: auto; white-space: pre; }
 
 .params { display: grid; gap: 14px; }
 .param { display: grid; gap: 4px; }
@@ -190,6 +190,72 @@ progress { width: 100%; accent-color: var(--accent); height: 6px; }
 .steps { padding-left: 1.2em; margin: 0; font-size: 0.92rem; }
 .steps li { margin: 0.45em 0; }
 
+/* Setup guide */
+.illustration { color: var(--ink); background: var(--paper); border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+.illustration svg { display: block; width: 100%; height: auto; max-height: 230px; font-family: var(--font-sans); }
+.procedure li { margin: 0.5em 0; }
+.hint { font-size: 0.85rem; color: var(--ink-2); margin: 12px 0 0; }
+
+.physics { margin-top: 16px; }
+.physics summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+.physics summary::-webkit-details-marker { display: none; }
+.physics summary::before { content: '+'; font-family: var(--font-mono); color: var(--accent); width: 1em; }
+.physics[open] summary::before { content: '−'; }
+.physics summary h2 { margin: 0; }
+.physics p { margin-top: 12px; }
+
+/* Capture overlay */
+.overlay {
+  position: fixed; inset: 0; z-index: 50; background: var(--paper);
+  display: flex; align-items: center; justify-content: center; padding: 24px 16px;
+  animation: fade-in 0.15s ease-out;
+}
+@keyframes fade-in { from { opacity: 0; } }
+.overlay-inner { width: 100%; max-width: 640px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.overlay-title { font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-2); margin: 0; }
+.overlay-prompt { font-size: 1.3rem; font-weight: 500; margin: 8px 0 0; display: flex; align-items: center; gap: 10px; }
+.overlay-big { font-family: var(--font-mono); font-size: clamp(6rem, 30vw, 11rem); font-weight: 600; line-height: 1; margin: 8px 0; color: var(--accent); }
+.overlay-big.small { font-size: clamp(2.5rem, 12vw, 4rem); color: var(--ink); }
+.overlay-progress { width: 100%; height: 8px; background: var(--rule); border-radius: 4px; overflow: hidden; }
+.overlay-progress span { display: block; height: 100%; background: var(--accent); transition: width 0.1s linear; }
+.overlay .live-chart { height: 200px; }
+.overlay-cancel { margin-top: 16px; min-width: 160px; }
+
+/* Trials */
+.trials-panel { padding: 16px 20px; }
+.trials-panel h3 { margin-top: 0; }
+.table-scroll { overflow-x: auto; }
+.trials { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.trials th { text-align: left; font-weight: 500; color: var(--ink-2); font-size: 0.8rem; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.trials td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--rule); font-family: var(--font-mono); white-space: nowrap; }
+.trials tbody tr { cursor: pointer; }
+.trials tbody tr:hover { background: var(--paper); }
+.trials tr.selected td { color: var(--accent); }
+.trials tr.selected td:first-child { box-shadow: inset 3px 0 0 var(--accent); padding-left: 8px; }
+.trials .pm { color: var(--ink-2); }
+.bad { color: var(--bad); }
+button.icon { padding: 2px 9px; font-size: 1.1rem; line-height: 1.2; color: var(--ink-2); }
+.result-block { margin-top: 24px; }
+.block-title { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--ink); font-size: 0.85rem; margin: 0 0 10px; }
+
+/* Worksheet */
+.worksheet { margin-top: 32px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 22px; }
+.sheet-form { display: grid; gap: 14px; }
+.sheet-form label { display: grid; gap: 4px; font-size: 0.92rem; font-weight: 500; }
+.sheet-form input, .sheet-form textarea {
+  font: 1rem var(--font-sans); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule); border-radius: 8px; padding: 9px 11px; width: 100%; resize: vertical;
+}
+.sheet-form input:focus, .sheet-form textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.error-sources li { margin: 0.35em 0; }
+
+/* Sensor check */
+.sensor-grid { margin-top: 24px; }
+.sensor-card .primary { width: 100%; padding: 14px; margin-top: 12px; }
+.sensor-ok { color: var(--good); font-weight: 600; font-family: var(--font-mono); }
+.sensor-values { display: flex; flex-wrap: wrap; gap: 6px 14px; font-family: var(--font-mono); font-size: 0.85rem; }
+.sensor-values b { color: var(--ink-2); font-weight: 500; }
+
 /* About */
 .prose { max-width: 70ch; }
 .prose li { margin: 0.5em 0; }
@@ -200,6 +266,15 @@ progress { width: 100%; accent-color: var(--accent); height: 6px; }
   .exp-grid, .two-col { grid-template-columns: 1fr; }
   .charts { grid-template-columns: 1fr; }
   main { padding-top: 20px; }
+  .illustration svg { max-height: 190px; }
+  .panel { padding: 18px; }
+}
+
+@media (max-width: 480px) {
+  .topbar { padding: 14px 0; }
+  .brand { font-size: 1rem; }
+  .brand svg { width: 22px; height: 22px; }
+  .topbar nav { gap: 12px; font-size: 0.85rem; }
 }
 
 @media print {
@@ -207,8 +282,9 @@ progress { width: 100%; accent-color: var(--accent); height: 6px; }
   .no-print, .actions, .back { display: none !important; }
   .print-only { display: block; }
   main { padding: 0; }
-  .panel, .chart, .two-col > section, .headline { break-inside: avoid; }
+  .panel, .chart, .two-col > section, .headline, .worksheet { break-inside: avoid; }
   .exp-grid { grid-template-columns: 1fr; }
-  .setup { display: none; }
+  .physics, .overlay, .hint { display: none !important; }
   .results { margin-top: 16px; }
+  .illustration { max-width: 360px; }
 }

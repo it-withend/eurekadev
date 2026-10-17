@@ -37,8 +37,9 @@ export function CatalogPage({ registry }: { registry: ExperimentRegistry }) {
 
       <section className="note">
         <p>
-          <strong>On a laptop?</strong> Every experiment ships with a sample recording, so you can open it and press
-          <em> Try sample data</em> to see the full analysis without a phone.
+          <strong>On a phone?</strong> Start with the <a href={href({ page: 'sensors' })}>sensor check</a> to see which
+          experiments your device supports. <strong>On a laptop?</strong> Every experiment ships with sample recordings:
+          open one and press <em>Try sample data</em> to see the full analysis.
         </p>
       </section>
     </>

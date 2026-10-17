@@ -31,6 +31,9 @@ Dependencies point **downwards only**:
 | `experiments` | `core`, `dsp` | `ui`, browser APIs |
 | `ui` | all of the above | — |
 
+These rules are enforced by ESLint (`no-restricted-imports` per layer in
+`eslint.config.js`), so CI fails if a lower layer reaches upwards.
+
 Consequences:
 
 - `dsp` and `experiments` are pure TypeScript with no DOM, so they run in
@@ -67,6 +70,18 @@ Consequences:
 materials, procedure, theory) plus one pure `analyze` function. The UI renders
 any definition generically. Adding an experiment is one folder and one line in
 `src/experiments/index.ts`; see [ADDING_AN_EXPERIMENT.md](ADDING_AN_EXPERIMENT.md).
+
+**Trials, not single shots.** Real lab practice repeats measurements. Each
+recording becomes a trial (kept on the device in localStorage); `core/aggregate.ts`
+combines successful trials into a mean with an honest uncertainty, the larger of the
+scatter between trials and the combined per-trial uncertainty. A plugin can override
+this with `summarize()`. The pendulum does: when the length was varied it fits
+T² against L, the classic school investigation.
+
+**Hands-free capture.** During a measurement the phone is swinging or spinning, so
+the UI layer gives audio and vibration cues at start and stop, holds a screen wake
+lock (sleeping screens throttle sensors on many phones), and shows a full-screen
+countdown readable from across the room.
 
 **Recordings are the unit of reproducibility.** Every measurement is saved in
 a small versioned JSON format (`format: "pocketlab.recording"`, `version: 1`)

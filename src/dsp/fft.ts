@@ -84,6 +84,13 @@ export function powerSpectrum(x: Signal, sampleRate: number, fftSize = nextPow2(
   return { freqs, power, binWidth };
 }
 
+/** Total power between fMin and fMax (inclusive bins). */
+export function bandPower(s: Spectrum, fMin: number, fMax: number): number {
+  let sum = 0;
+  for (let k = 0; k < s.freqs.length; k++) if (s.freqs[k] >= fMin && s.freqs[k] <= fMax) sum += s.power[k];
+  return sum;
+}
+
 export interface WelchResult extends Spectrum {
   /** Individual segment spectra, kept so callers can measure peak scatter. */
   segments: Spectrum[];
