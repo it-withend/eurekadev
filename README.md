@@ -8,7 +8,8 @@ with the accepted value, explains every step, and produces a lab report.
 
 > Built for **EurekaDev 2026** · Coding Track · Math & Physics
 
-**Live demo:** _add link after deploy_ · **Video:** _add link_
+**Live demo:** https://eurekadev.vercel.app · **One-click finished example (no phone needed):**
+https://eurekadev.vercel.app/#/experiment/pendulum/demo · **Video:** _add link_
 
 ## The problem
 
@@ -78,16 +79,34 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## Validation
 
-| Experiment | Phone | Trials | Measured | Accepted | Error |
-|---|---|---|---|---|---|
-| Pendulum | _to be filled from real tests_ | | | 9.81 m/s² | |
-| Singing tube | | | | 343 m/s @ 20 °C | |
-| Spinning chair | | | | ruler r | |
+**Reproducible accuracy report:** `npm run validate` runs every experiment 20 times on every
+simulated phone platform with randomised setups and writes [docs/VALIDATION.md](docs/VALIDATION.md).
+Clone the repo, run it, get the same numbers.
 
-Automated tests check every analysis against physics simulations with known
-ground truth: a non-linear pendulum integrated with RK4, including large swings,
-twisting on the string and phones without a gyroscope; air-column resonances; and
-a decelerating turntable.
+| Experiment | Mean error (all platforms) | Worst error | Truth within ±2σ |
+|---|---|---|---|
+| Pendulum → g | 0.17–0.25 % | 1.56 % | 100 % |
+| Spinning chair → r | 0.22–0.47 % | 1.58 % | 100 % |
+| Singing tube → v | 0.30–0.40 % | 0.98 % | 100 % |
+
+"Truth within ±2σ" checks that PocketLab's uncertainty is honest: the true value lies inside
+the reported range. Real-device results are tracked in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md):
+so far an iPhone (Safari) and an iPhone 12 Pro, and each real test so far uncovered a platform
+difference that is now handled.
+
+## Limitations
+
+What these numbers do not say, and what PocketLab does not do:
+
+- The accuracy figures come from **simulations**. Real sensors have bias and noise that is not
+  modelled, and real students do not set things up perfectly. Expect a few percent in practice.
+- The physics models are school-level: the phone is treated as a point mass on the pendulum, the
+  tube end correction is the textbook 0.3·d, and air temperature is whatever the student enters.
+- The spinning-chair experiment needs a gyroscope; some budget phones do not have one (the app says so).
+- PocketLab does not replace a teacher or a real lab. It makes measurement possible where there is
+  no equipment, and makes the method visible so students can judge their own results.
+- Student-made experiments can only measure what the five built-in measures extract
+  (period, frequency, pitch, peak acceleration, rotation speed).
 
 ## Run it
 
@@ -97,10 +116,15 @@ Requires Node.js 20 or newer.
 npm install
 npm run dev          # http://localhost:5173 (desktop; use sample data)
 npm run dev:phone    # HTTPS on your LAN; open the printed https://<ip>:5173 on a phone
-npm test             # 73 tests: DSP, physics ground truth, platform matrix, formulas, builder
+npm test             # 75 unit tests: DSP, physics ground truth, platform matrix, formulas, builder
+npm run validate     # accuracy report over simulated phone platforms -> docs/VALIDATION.md
+npm run e2e          # 12 Playwright end-to-end tests, desktop + phone viewport
 npm run lint         # ESLint, including architecture layer rules
 npm run build        # static site in dist/
 ```
+
+First e2e run: `npx playwright install chromium`. On Windows machines that block the downloaded
+browser, use the installed Edge instead: `PW_CHANNEL=msedge npm run e2e`.
 
 Phones only expose motion sensors and the microphone to **https** pages, which is
 why `dev:phone` serves a self-signed certificate. Accept the warning once on the phone.
@@ -119,7 +143,9 @@ Any static host works for deployment (Vercel, Netlify, GitHub Pages): build comm
   build if a lower layer imports a higher one.
 - **Reproducible recordings** in a versioned JSON format: replay, share with a teacher, test.
 - **Offline-capable PWA**, with no backend and no tracking. Data never leaves the device.
-- CI on GitHub Actions: typecheck, lint, tests, build.
+- **Spoken instructions** during recording (Web Speech API), since the student cannot read a swinging phone.
+- **Share result** through the phone's share sheet (text summary + recording file), e.g. to a teacher.
+- CI on GitHub Actions: typecheck, lint, unit tests, validation report, build, and Playwright e2e tests.
 
 ```
 src/

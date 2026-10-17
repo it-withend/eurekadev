@@ -3,10 +3,12 @@ import type { Comparison } from '@core/types';
 import { niceTicks } from './components/chartDraw';
 import { href, parseHash } from './router';
 import { agreement, explain } from './verdict';
+import { resultSummary } from './share';
+import type { ExperimentDefinition, SuccessfulAnalysis } from '@core/types';
 
 describe('router', () => {
   it('round-trips every route through the URL hash', () => {
-    for (const r of [{ page: 'catalog' }, { page: 'about' }, { page: 'sensors' }, { page: 'experiment', id: 'pendulum' }, { page: 'create' }, { page: 'create', id: 'my-x-1a2b' }] as const) {
+    for (const r of [{ page: 'catalog' }, { page: 'about' }, { page: 'sensors' }, { page: 'experiment', id: 'pendulum' }, { page: 'experiment', id: 'pendulum', demo: true }, { page: 'create' }, { page: 'create', id: 'my-x-1a2b' }] as const) {
       expect(parseHash(href(r))).toEqual(r);
     }
     expect(parseHash('#/nonsense')).toEqual({ page: 'catalog' });
@@ -51,5 +53,19 @@ describe('verdict', () => {
     expect(explain(c(9.85, 0.05))).toMatch(/confirms it/);
     expect(explain(c(981, 5))).toMatch(/cm vs m/);
     expect(explain(c(12, 0.1))).not.toMatch(/cm vs m/);
+  });
+});
+
+describe('share summary', () => {
+  it('reads like a message to a teacher', () => {
+    const def = { title: 'Measure Gravity with a Pendulum' } as ExperimentDefinition;
+    const result = {
+      ok: true,
+      primary: { quantity: 'Gravitational acceleration', symbol: 'g', measured: 9.86, uncertainty: 0.034, accepted: 9.807, acceptedSource: '', unit: 'm/s²', digits: 2 },
+    } as SuccessfulAnalysis;
+    const text = resultSummary(def, 4, result, 'https://x/#/experiment/pendulum');
+    expect(text).toContain('g = 9.86 ± 0.03 m/s²');
+    expect(text).toContain('0.5 % error');
+    expect(text).toContain('Trials: 4');
   });
 });

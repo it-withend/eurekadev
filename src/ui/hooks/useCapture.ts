@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRecording } from '@core/recording';
 import { createSensor, SensorError, type SensorSource } from '@core/sensors';
 import type { ExperimentDefinition, Recording } from '@core/types';
-import { cues, keepAwake, unlockAudio } from '../feedback';
+import { cues, keepAwake, unlockAudio, voice } from '../feedback';
+import { capturePrompts } from '../capturePrompts';
 
 export type CapturePhase =
   | { phase: 'idle' }
@@ -29,6 +30,7 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
   const releaseWakeLock = useRef<() => void>(() => undefined);
 
   const teardown = useCallback(() => {
+    voice.stop();
     timers.current.forEach((id) => window.clearInterval(id));
     timers.current = [];
     sensor.current?.dispose();
@@ -91,6 +93,7 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
         sensor.current = null;
         teardown();
         cues.stop();
+        voice.say('Done. Your result is ready.');
         setState({ phase: 'idle' });
         onRecorded(
           createRecording({
@@ -113,6 +116,8 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
   /** Must be invoked directly from a click handler (iOS permission prompts). */
   const start = (params: Record<string, number>) => {
     unlockAudio();
+    // Spoken inside the tap: this also unlocks speech on iOS for the rest of the measurement.
+    voice.say(`${capturePrompts(def).countdown} Recording starts after the beep.`);
     const s = createSensor(def.sensor);
     sensor.current = s;
     setState({ phase: 'preparing' });
@@ -129,9 +134,14 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
         }
         window.clearInterval(countdown);
         cues.start();
-        // Let the start beep die away before a microphone starts listening.
-        if (def.sensor === 'audio') timers.current.push(window.setTimeout(() => record(s, params), 400));
-        else record(s, params);
+        if (def.sensor === 'audio') {
+          // The microphone must hear only the experiment: silence the voice, let the beep die away.
+          voice.stop();
+          timers.current.push(window.setTimeout(() => record(s, params), 400));
+        } else {
+          record(s, params);
+          voice.say(capturePrompts(def).recording);
+        }
       }, 1000);
       timers.current.push(countdown);
     }, fail);

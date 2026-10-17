@@ -42,6 +42,7 @@ export function Tour({ id, steps, autoStart = true }: { id: string; steps: TourS
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
+  const [cardHeight, setCardHeight] = useState(220);
   const card = useRef<HTMLDivElement>(null);
 
   // Steps whose target is not on the page right now (e.g. results before a measurement) are skipped.
@@ -86,6 +87,7 @@ export function Tour({ id, steps, autoStart = true }: { id: string; steps: TourS
     };
     track();
     card.current?.focus();
+    if (card.current) setCardHeight(card.current.offsetHeight);
     return () => cancelAnimationFrame(raf);
   }, [open, step]);
 
@@ -113,12 +115,17 @@ export function Tour({ id, steps, autoStart = true }: { id: string; steps: TourS
       }
     : null;
 
-  // Card goes below the target if it fits, otherwise above; centred when there is no target.
+  // Card goes below the target if it fits, else above; if the target is taller than the
+  // free space (common on phones), it docks to the bottom of the screen over the target.
+  // Always clamped to the viewport, so the buttons can never end up off-screen.
   const cardStyle: React.CSSProperties = {};
   if (hole) {
-    const below = vh - hole.bottom;
-    if (below > 220 || below > hole.top) cardStyle.top = Math.min(hole.bottom + 12, vh - 200);
-    else cardStyle.bottom = vh - hole.top + 12;
+    const need = cardHeight + 24;
+    let top: number;
+    if (vh - hole.bottom >= need) top = hole.bottom + 12;
+    else if (hole.top >= need) top = hole.top - 12 - cardHeight;
+    else top = vh - cardHeight - 12;
+    cardStyle.top = Math.max(12, Math.min(top, vh - cardHeight - 12));
   }
 
   const last = index >= visible.length - 1;

@@ -1,9 +1,10 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { validateParams } from '@core/params';
 import type { ExperimentDefinition } from '@core/types';
 import type { CapturePhase } from '../hooks/useCapture';
 import { ParamForm } from './ParamForm';
 import { StepHeading } from './Steps';
+import { voice } from '../feedback';
 
 /** Parameters + the ways to get data in: measure, sample data, or a saved file. */
 export function MeasurePanel({
@@ -28,6 +29,7 @@ export function MeasurePanel({
   loadError: string | null;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const [speak, setSpeak] = useState(voice.enabled());
   const busy = capture.phase === 'preparing' || capture.phase === 'countdown' || capture.phase === 'recording';
   const invalid = Object.keys(validateParams(def.params, params)).length > 0;
   // Generated samples are made on demand; count them as one without building them.
@@ -64,6 +66,19 @@ export function MeasurePanel({
           }}
         />
       </div>
+      {voice.supported() && (
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={speak}
+            onChange={(e) => {
+              voice.setEnabled(e.target.checked);
+              setSpeak(e.target.checked);
+            }}
+          />
+          🔊 Spoken instructions while recording
+        </label>
+      )}
       <p className="hint">
         Results are more trustworthy with several trials.
         {def.summarize && ' Change the length between trials to plot T² against L.'}

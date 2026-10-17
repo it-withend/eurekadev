@@ -3,6 +3,8 @@ import { durationOf, recordingToCsv } from '@core/recording';
 import type { AnalysisResult, ExperimentDefinition } from '@core/types';
 import type { AnalyzedTrial } from '../hooks/useTrials';
 import { downloadText } from '../download';
+import { href } from '../router';
+import { resultSummary, shareResult, type ShareOutcome } from '../share';
 import { ParamForm } from './ParamForm';
 import { ResultView } from './ResultView';
 import { TrialsTable } from './TrialsTable';
@@ -78,6 +80,7 @@ export function ResultsSection({
   onClear: () => void;
   onParamsChange: (id: string, p: Record<string, number>) => void;
 }) {
+  const [shared, setShared] = useState<ShareOutcome | null>(null);
   if (trials.length === 0) return null;
   const rec = selected?.recording;
   const stamp = rec ? rec.startedAt.slice(0, 19).replace(/[:T]/g, '-') : '';
@@ -89,6 +92,17 @@ export function ResultsSection({
         <StepHeading id="step-results" />
         <span className="spacer" />
         <span className="no-print bar-actions">
+          <button
+            className="primary"
+            onClick={async () => {
+              const link = `${window.location.origin}${window.location.pathname}${href({ page: 'experiment', id: def.id })}`;
+              const text = resultSummary(def, okCount, summary ?? selected?.result ?? null, link);
+              setShared(await shareResult(text, rec, `pocketlab-${def.id}-${stamp}.json`));
+              window.setTimeout(() => setShared(null), 2500);
+            }}
+          >
+            {shared === 'copied' ? 'Copied ✓' : shared === 'shared' ? 'Shared ✓' : 'Share result'}
+          </button>
           <button onClick={() => window.print()}>Lab report (PDF)</button>
           {rec && (
             <>

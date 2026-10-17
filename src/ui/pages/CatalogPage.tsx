@@ -44,6 +44,9 @@ export function CatalogPage({ builtIn, custom }: { builtIn: readonly ExperimentD
           <button className="primary" onClick={() => startTour('catalog')}>
             Show me how it works
           </button>
+          <a className="button" href={href({ page: 'experiment', id: 'pendulum', demo: true })}>
+            See a finished example (no phone needed)
+          </a>
           <a className="button" href={href({ page: 'sensors' })}>
             Check my phone’s sensors
           </a>

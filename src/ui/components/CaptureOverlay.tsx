@@ -1,11 +1,7 @@
 import type { ExperimentDefinition } from '@core/types';
 import type { CapturePhase, LiveBuffer } from '../hooks/useCapture';
 import { LiveChart } from './LiveChart';
-
-const PROMPT: Record<string, { countdown: string; recording: string }> = {
-  motion: { countdown: 'Get into position…', recording: 'Recording — let it move' },
-  audio: { countdown: 'Get ready to blow…', recording: 'Recording — blow now' },
-};
+import { capturePrompts } from '../capturePrompts';
 
 /** Full-screen countdown and recording view: big enough to read from across the room. */
 export function CaptureOverlay({
@@ -20,7 +16,7 @@ export function CaptureOverlay({
   onCancel: () => void;
 }) {
   if (state.phase !== 'countdown' && state.phase !== 'recording' && state.phase !== 'preparing') return null;
-  const prompt = def.capturePrompts ?? PROMPT[def.sensor];
+  const prompt = capturePrompts(def);
   const progress = state.phase === 'recording' ? Math.min(1, state.elapsed / def.durationSec) : 0;
   return (
     <div className={`overlay ${state.phase}`} role="dialog" aria-modal="true" aria-label="Measurement in progress">

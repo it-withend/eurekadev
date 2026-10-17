@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 
 export type Route =
   | { page: 'catalog' }
-  | { page: 'experiment'; id: string }
+  /** `demo`: open with the sample data already analysed — a one-click link for judges and teachers. */
+  | { page: 'experiment'; id: string; demo?: boolean }
   | { page: 'about' }
   | { page: 'sensors' }
   /** Experiment builder; with an id it edits an existing student-made experiment. */
@@ -11,7 +12,10 @@ export type Route =
 /** Hash routing: works on any static host with zero server config. */
 export function parseHash(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  if (parts[0] === 'experiment' && parts[1]) return { page: 'experiment', id: decodeURIComponent(parts[1]) };
+  if (parts[0] === 'experiment' && parts[1]) {
+    const id = decodeURIComponent(parts[1]);
+    return parts[2] === 'demo' ? { page: 'experiment', id, demo: true } : { page: 'experiment', id };
+  }
   if (parts[0] === 'about') return { page: 'about' };
   if (parts[0] === 'sensors') return { page: 'sensors' };
   if (parts[0] === 'create') return parts[1] ? { page: 'create', id: decodeURIComponent(parts[1]) } : { page: 'create' };
@@ -21,7 +25,7 @@ export function parseHash(hash: string): Route {
 export function href(route: Route): string {
   switch (route.page) {
     case 'experiment':
-      return `#/experiment/${encodeURIComponent(route.id)}`;
+      return `#/experiment/${encodeURIComponent(route.id)}${route.demo ? '/demo' : ''}`;
     case 'about':
       return '#/about';
     case 'sensors':

@@ -87,9 +87,11 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
     const abs = Array.from(signal, Math.abs).sort((a, b) => a - b);
     const omegaMax = abs[Math.floor(abs.length * 0.95)];
     theta0 = (omegaMax * T) / (2 * Math.PI);
-    correction = 1 + theta0 ** 2 / 16 + (11 * theta0 ** 4) / 3072;
-    if (theta0 > 0.6) warnings.push(`Large swing (≈${fmt((theta0 * 180) / Math.PI, 0)}°). Smaller swings (< 15°) are more accurate.`);
+  } else {
+    theta0 = amplitudeFromTension(rec);
   }
+  correction = 1 + theta0 ** 2 / 16 + (11 * theta0 ** 4) / 3072;
+  if (theta0 > 0.6) warnings.push(`Large swing (≈${fmt((theta0 * 180) / Math.PI, 0)}°). Smaller swings (< 15°) are more accurate.`);
   const T0 = T / correction;
   const g = (4 * Math.PI ** 2 * L) / T0 ** 2;
   const relErr = Math.sqrt((dL / L) ** 2 + ((2 * dT) / T) ** 2);
@@ -155,13 +157,30 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
         : `Found ${est.cycles} tension cycles on ${source.name}; tension peaks twice per swing, so T = 2 × ${fmt(est.period, 4)} = ${fmt(T, 4)} ± ${fmt(dT, 4)} s.`,
       hasGyro
         ? `Peak angular velocity gives amplitude θ₀ ≈ ${fmt((theta0 * 180) / Math.PI, 1)}°, so T₀ = T / (1 + θ₀²/16 + …) = ${fmt(T0, 4)} s.`
-        : 'Amplitude unknown without a gyroscope: assuming small swings, T₀ = T.',
+        : `The string tension swings between g·cos θ₀ and g·(3 − 2 cos θ₀), so its range gives the amplitude θ₀ ≈ ${fmt((theta0 * 180) / Math.PI, 1)}° and T₀ = T / (1 + θ₀²/16 + …) = ${fmt(T0, 4)} s.`,
       `g = 4π²L / T₀² = 4π² × ${fmt(L, 3)} / ${fmt(T0, 4)}² = ${fmt(g, 3)} m/s².`,
       `Δg/g = √((ΔL/L)² + (2ΔT/T)²) = ${fmt(relErr * 100, 2)} %, so Δg = ${fmt(dg, 3)} m/s².`,
     ],
     warnings,
     values: { L, T, T0, dT, g },
   };
+}
+
+/**
+ * Without a gyroscope the swing amplitude still shows in the accelerometer:
+ * the phone feels the string tension per unit mass, g·(3 cos θ − 2 cos θ₀),
+ * which ranges from g·cos θ₀ (turning points) to g·(3 − 2 cos θ₀) (bottom).
+ * The range is 3g·(1 − cos θ₀). Percentiles make it robust to noise spikes.
+ */
+function amplitudeFromTension(rec: Recording): number {
+  const [ax, ay, az] = ACCEL.map((c) => rec.channels[c]);
+  if (!ax || !ay || !az) return 0;
+  const mag = lowPass(Float64Array.from(ax, (_, i) => Math.hypot(ax[i], ay[i], az[i])), rec.sampleRate, 4);
+  const skip = Math.min(Math.round(rec.sampleRate), Math.floor(mag.length / 4));
+  const sorted = Array.from(mag.subarray(skip)).sort((a, b) => a - b);
+  const range = sorted[Math.floor(sorted.length * 0.98)] - sorted[Math.floor(sorted.length * 0.02)];
+  const cos = 1 - range / (3 * STANDARD_GRAVITY);
+  return cos > 0 && cos < 1 ? Math.acos(cos) : 0;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { defaultParams } from '@core/params';
 import { parseRecording } from '@core/recording';
 import type { ExperimentDefinition, Recording } from '@core/types';
@@ -19,7 +19,7 @@ async function fetchRecording(path: string): Promise<Recording> {
   return parseRecording(await res.json());
 }
 
-export function ExperimentPage({ def }: { def: ExperimentDefinition }) {
+export function ExperimentPage({ def, demo = false }: { def: ExperimentDefinition; demo?: boolean }) {
   const [params, setParams] = useState(() => defaultParams(def.params));
   const [loadError, setLoadError] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -46,6 +46,16 @@ export function ExperimentPage({ def }: { def: ExperimentDefinition }) {
     }
   };
 
+  // Demo link: show a finished analysis straight away (once — reloading must not duplicate samples).
+  const demoLoaded = useRef(false);
+  useEffect(() => {
+    if (!demo || demoLoaded.current) return;
+    demoLoaded.current = true;
+    if (!trials.trials.some((t) => t.origin === 'sample')) void loadSamples();
+    else reveal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per demo visit
+  }, [demo]);
+
   const loadFile = async (file: File) => {
     try {
       const rec = parseRecording(JSON.parse(await file.text()));
@@ -59,7 +69,13 @@ export function ExperimentPage({ def }: { def: ExperimentDefinition }) {
   return (
     <article className="experiment">
       <CaptureOverlay def={def} state={state} live={live} onCancel={cancel} />
-      <Tour id="experiment" steps={EXPERIMENT_TOUR} />
+      <Tour id="experiment" steps={EXPERIMENT_TOUR} autoStart={!demo} />
+      {demo && (
+        <p className="demo-banner no-print">
+          You are looking at a finished example with simulated sample data. Scroll down to see the results, or{' '}
+          <a href={href({ page: 'experiment', id: def.id })}>measure it yourself</a>.
+        </p>
+      )}
 
       <a className="back no-print" href={href({ page: 'catalog' })}>
         ← All experiments

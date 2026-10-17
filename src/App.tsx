@@ -44,7 +44,7 @@ export function App() {
           {route.page === 'create' && <CreatePage key={route.id ?? 'new'} id={route.id} />}
           {route.page === 'experiment' &&
             (def ? (
-              <ExperimentPage key={def.id} def={def} />
+              <ExperimentPage key={def.id} def={def} demo={route.page === 'experiment' && route.demo} />
             ) : (
               <p className="prose">
                 Experiment not found. <a href={href({ page: 'catalog' })}>See all experiments</a>.

@@ -57,3 +57,43 @@ export async function keepAwake(): Promise<() => void> {
     return () => undefined;
   }
 }
+
+/**
+ * Spoken instructions. During a measurement the phone is swinging or spinning
+ * and the student cannot read the screen, so the key instruction is also said
+ * out loud. The first utterance happens inside the Start tap, which unlocks
+ * speech on iOS. Never used while a microphone is recording.
+ */
+const VOICE_KEY = 'pocketlab.voice';
+let voiceOn = (() => {
+  try {
+    return localStorage.getItem(VOICE_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+})();
+
+export const voice = {
+  supported: () => typeof window !== 'undefined' && 'speechSynthesis' in window,
+  enabled: () => voiceOn,
+  setEnabled(on: boolean) {
+    voiceOn = on;
+    try {
+      localStorage.setItem(VOICE_KEY, on ? 'on' : 'off');
+    } catch {
+      // preference only
+    }
+    if (!on) voice.stop();
+  },
+  say(text: string) {
+    if (!voiceOn || !voice.supported()) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 1.05;
+    window.speechSynthesis.speak(u);
+  },
+  stop() {
+    if (voice.supported()) window.speechSynthesis.cancel();
+  },
+};

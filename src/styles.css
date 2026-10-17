@@ -387,6 +387,11 @@ button.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 4
 .create-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 24px 0; }
 .create-actions .primary { padding: 14px 22px; font-size: 1.05rem; }
 
+.demo-banner { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid var(--accent); border-radius: var(--radius); padding: 12px 16px; margin: 0 0 16px; }
+
+.toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 0.9rem; cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 18px; height: 18px; }
+
 /* About */
 .prose { max-width: 70ch; }
 .prose li { margin: 0.5em 0; }
