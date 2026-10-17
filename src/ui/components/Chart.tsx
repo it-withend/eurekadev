@@ -40,6 +40,7 @@ export function Chart({ spec }: { spec: ChartSpec }) {
         </span>
       </figcaption>
       <canvas ref={ref} role="img" aria-label={`${spec.title}: ${spec.yLabel} against ${spec.xLabel}`} />
+      {spec.caption && <p className="chart-caption">{spec.caption}</p>}
     </figure>
   );
 }

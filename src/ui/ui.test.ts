@@ -6,7 +6,7 @@ import { agreement, explain } from './verdict';
 
 describe('router', () => {
   it('round-trips every route through the URL hash', () => {
-    for (const r of [{ page: 'catalog' }, { page: 'about' }, { page: 'sensors' }, { page: 'experiment', id: 'pendulum' }] as const) {
+    for (const r of [{ page: 'catalog' }, { page: 'about' }, { page: 'sensors' }, { page: 'experiment', id: 'pendulum' }, { page: 'create' }, { page: 'create', id: 'my-x-1a2b' }] as const) {
       expect(parseHash(href(r))).toEqual(r);
     }
     expect(parseHash('#/nonsense')).toEqual({ page: 'catalog' });

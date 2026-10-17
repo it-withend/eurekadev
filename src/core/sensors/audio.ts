@@ -1,7 +1,5 @@
+import { decimateAudio } from './processing';
 import { SensorError, type Capture, type LiveSample, type SensorSource } from './types';
-
-/** Target rate after decimation. Plenty for resonances below ~3 kHz, and keeps recordings small. */
-const TARGET_RATE = 8000;
 
 // Runs on the audio thread: forwards raw sample blocks to the main thread.
 const WORKLET = `
@@ -15,13 +13,18 @@ class Tap extends AudioWorkletProcessor {
 registerProcessor('pocketlab-tap', Tap);
 `;
 
-/** Microphone via Web Audio. Disables browser voice processing that would distort the physics. */
+/**
+ * Microphone via Web Audio. Disables browser voice processing that would
+ * distort the physics. Uses an AudioWorklet where available and falls back to
+ * the older ScriptProcessorNode (iOS < 14.5, old Android WebViews).
+ */
 export class AudioSource implements SensorSource {
   readonly kind = 'audio' as const;
   private ctx: AudioContext | null = null;
   private stream: MediaStream | null = null;
-  private node: AudioWorkletNode | null = null;
+  private node: AudioNode | null = null;
   private chunks: Float32Array[] = [];
+  private useWorklet = false;
 
   async prepare(): Promise<void> {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -29,7 +32,8 @@ export class AudioSource implements SensorSource {
     }
     // Create and resume the context synchronously inside the user gesture:
     // iOS Safari refuses to start audio from a timer later on.
-    this.ctx = new AudioContext();
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    this.ctx = new Ctx();
     void this.ctx.resume();
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
@@ -39,51 +43,51 @@ export class AudioSource implements SensorSource {
       this.dispose();
       throw new SensorError('Microphone access was denied.', 'Allow microphone access and try again.');
     }
-    const url = URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' }));
-    try {
-      await this.ctx.audioWorklet.addModule(url);
-    } finally {
-      URL.revokeObjectURL(url);
+    this.useWorklet = typeof AudioWorkletNode !== 'undefined' && !!this.ctx.audioWorklet;
+    if (this.useWorklet) {
+      const url = URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' }));
+      try {
+        await this.ctx.audioWorklet.addModule(url);
+      } catch {
+        this.useWorklet = false;
+      } finally {
+        URL.revokeObjectURL(url);
+      }
     }
   }
 
   start(onSample: (s: LiveSample) => void): void {
-    if (!this.ctx || !this.stream) throw new SensorError('Microphone not prepared.');
-    void this.ctx.resume();
+    const ctx = this.ctx;
+    if (!ctx || !this.stream) throw new SensorError('Microphone not prepared.');
+    void ctx.resume();
     this.chunks = [];
-    const src = this.ctx.createMediaStreamSource(this.stream);
-    this.node = new AudioWorkletNode(this.ctx, 'pocketlab-tap');
-    this.node.port.onmessage = (e: MessageEvent<Float32Array>) => {
-      const block = e.data;
+    const push = (block: Float32Array) => {
       this.chunks.push(block);
       let s = 0;
       for (let i = 0; i < block.length; i++) s += block[i] * block[i];
       onSample({ rms: Math.sqrt(s / block.length) });
     };
-    src.connect(this.node);
+    const src = ctx.createMediaStreamSource(this.stream);
+    if (this.useWorklet) {
+      const node = new AudioWorkletNode(ctx, 'pocketlab-tap');
+      node.port.onmessage = (e: MessageEvent<Float32Array>) => push(e.data);
+      src.connect(node);
+      this.node = node;
+    } else {
+      const node = ctx.createScriptProcessor(2048, 1, 1);
+      node.onaudioprocess = (e) => push(e.inputBuffer.getChannelData(0).slice(0));
+      src.connect(node);
+      // ScriptProcessor only runs when connected to the output; it writes silence.
+      node.connect(ctx.destination);
+      this.node = node;
+    }
   }
 
   stop(): Capture {
     const rate = this.ctx?.sampleRate ?? 48000;
     const chunks = this.chunks;
     this.dispose();
-    const total = chunks.reduce((n, c) => n + c.length, 0);
-    if (total < rate * 0.5) throw new SensorError('Too little audio was captured.');
-    // Box-car average then decimate: a cheap anti-aliasing low-pass.
-    const factor = Math.max(1, Math.floor(rate / TARGET_RATE));
-    const out = new Float64Array(Math.floor(total / factor));
-    let acc = 0, k = 0, j = 0;
-    for (const c of chunks) {
-      for (let i = 0; i < c.length; i++) {
-        acc += c[i];
-        if (++k === factor) {
-          if (j < out.length) out[j++] = acc / factor;
-          acc = 0;
-          k = 0;
-        }
-      }
-    }
-    return { sampleRate: rate / factor, channels: { audio: out }, device: navigator.userAgent };
+    return { ...decimateAudio(chunks, rate), device: navigator.userAgent };
   }
 
   dispose(): void {

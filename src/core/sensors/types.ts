@@ -7,6 +7,11 @@ export interface Capture {
   sampleRate: number;
   channels: Record<string, Float64Array>;
   device?: string;
+  meta?: {
+    /** Native rate the hardware actually delivered, Hz. */
+    eventRate?: number;
+    hasGyroscope?: boolean;
+  };
 }
 
 /**

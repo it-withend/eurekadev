@@ -31,6 +31,9 @@ export interface Recording {
     synthetic?: boolean;
     device?: string;
     note?: string;
+    /** Native rate the hardware delivered, Hz (before resampling). */
+    eventRate?: number;
+    hasGyroscope?: boolean;
   };
 }
 
@@ -76,7 +79,8 @@ export interface Comparison {
   symbol: string;
   measured: number;
   uncertainty: number;
-  accepted: number;
+  /** Reference value to compare with; absent for open investigations (e.g. student-made experiments). */
+  accepted?: number;
   /** Uncertainty of the reference itself (e.g. a ruler reading); 0 for constants. */
   acceptedUncertainty?: number;
   acceptedSource: string;
@@ -95,6 +99,8 @@ export interface Series {
 
 export interface ChartSpec {
   title: string;
+  /** One or two plain sentences telling a student how to read the chart. */
+  caption?: string;
   xLabel: string;
   yLabel: string;
   series: Series[];
@@ -136,6 +142,8 @@ export interface ExperimentDefinition {
   durationSec: number;
   /** Seconds between pressing Start and recording, to get into position. Default 3. */
   countdownSec?: number;
+  /** What the student should be doing during the countdown and the recording, shown full-screen. */
+  capturePrompts?: { countdown: string; recording: string };
   params: ParamSpec[];
   materials: string[];
   instructions: string[];
@@ -153,6 +161,10 @@ export interface ExperimentDefinition {
   };
   /** Paths (under /public) of bundled sample recordings, loaded together as trials. */
   demoDatasets?: string[];
+  /** Generated sample recordings (used when there are no bundled files, e.g. student-made experiments). */
+  sampleRecordings?: () => Recording[];
+  /** True for experiments a student created in the builder. */
+  custom?: boolean;
   /** Live-preview channel selector: one number per incoming sample. */
   preview: (sample: Record<string, number>) => number;
   previewLabel: string;

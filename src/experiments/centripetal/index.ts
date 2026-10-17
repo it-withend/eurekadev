@@ -10,6 +10,10 @@ export const centripetal: ExperimentDefinition = {
   sensor: 'motion',
   durationSec: 20,
   countdownSec: 5,
+  capturePrompts: {
+    countdown: 'Hand on the chair, get ready to spin…',
+    recording: 'Spin it hard now, then step back and let it slow down.',
+  },
   params: centripetalParams,
   materials: ['Your phone', 'An empty swivel chair, lazy Susan or turntable', 'Tape', 'A ruler'],
   instructions: [

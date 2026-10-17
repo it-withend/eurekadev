@@ -9,6 +9,10 @@ export const resonance: ExperimentDefinition = {
   subject: 'Waves & Sound',
   sensor: 'audio',
   durationSec: 4,
+  capturePrompts: {
+    countdown: 'Hold the microphone next to the opening…',
+    recording: 'Blow gently across the top now — keep the note steady.',
+  },
   params: resonanceParams,
   materials: ['Your phone', 'A tall cylindrical glass, vase or a paper-towel roll', 'A ruler'],
   instructions: [

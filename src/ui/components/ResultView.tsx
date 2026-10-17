@@ -14,16 +14,20 @@ function Headline({ c }: { c: Comparison }) {
         <span className="pm"> ± {f(c.uncertainty, c.digits)}</span>
         <span className="unit"> {c.unit}</span>
       </div>
-      <div className="headline-ref">
-        Accepted: {f(c.accepted, c.digits)}
-        {c.acceptedUncertainty ? ` ± ${f(c.acceptedUncertainty, c.digits)}` : ''} {c.unit}{' '}
-        <span className="src">({c.acceptedSource})</span>
-      </div>
+      {c.accepted !== undefined && (
+        <div className="headline-ref">
+          Accepted: {f(c.accepted, c.digits)}
+          {c.acceptedUncertainty ? ` ± ${f(c.acceptedUncertainty, c.digits)}` : ''} {c.unit}{' '}
+          <span className="src">({c.acceptedSource})</span>
+        </div>
+      )}
       <div className="headline-verdict">
         <strong>{VERDICT_TITLE[a.verdict]}</strong>
-        <span className="stats">
-          {f(a.errorPct, 2)} % error · {Number.isFinite(a.sigmas) ? `${f(a.sigmas, 1)}σ` : '—'}
-        </span>
+        {c.accepted !== undefined && (
+          <span className="stats">
+            {f(a.errorPct, 2)} % error · {Number.isFinite(a.sigmas) ? `${f(a.sigmas, 1)}σ` : '—'}
+          </span>
+        )}
       </div>
       <p className="headline-explain">{explain(c)}</p>
       <details className="explain-more no-print">

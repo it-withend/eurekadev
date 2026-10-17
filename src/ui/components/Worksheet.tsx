@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ExperimentDefinition } from '@core/types';
 import { load, save } from '../storage';
+import { StepHeading } from './Steps';
 
 interface Sheet {
   name: string;
@@ -24,8 +25,8 @@ export function Worksheet({ def }: { def: ExperimentDefinition }) {
   });
 
   return (
-    <section className="worksheet">
-      <h2>Lab worksheet</h2>
+    <section className="worksheet" id="step-report" data-tour="worksheet">
+      <StepHeading id="step-report">Write up your lab report</StepHeading>
       <div className="no-print sheet-form">
         <label>
           <span>Name and class</span>

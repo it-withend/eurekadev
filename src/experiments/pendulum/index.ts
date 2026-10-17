@@ -10,6 +10,10 @@ export const pendulum: ExperimentDefinition = {
   sensor: 'motion',
   durationSec: 25,
   countdownSec: 5,
+  capturePrompts: {
+    countdown: 'Pull the phone aside about 10–15° and hold it still…',
+    recording: 'Let go now! Let it swing freely until the double beep.',
+  },
   params: pendulumParams,
   materials: ['Your phone', 'A string or shoelace ~1 m long', 'Tape or a phone case with a strap hole', 'A ruler or tape measure'],
   instructions: [

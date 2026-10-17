@@ -8,7 +8,10 @@ import { CaptureOverlay } from '../components/CaptureOverlay';
 import { MeasurePanel } from '../components/MeasurePanel';
 import { ResultsSection } from '../components/ResultsSection';
 import { Worksheet } from '../components/Worksheet';
+import { StepBar, StepHeading } from '../components/Steps';
 import { href } from '../router';
+import { Tour } from '../tour/Tour';
+import { EXPERIMENT_TOUR } from '../tour/tours';
 
 async function fetchRecording(path: string): Promise<Recording> {
   const res = await fetch(`${import.meta.env.BASE_URL}${path}`);
@@ -34,7 +37,7 @@ export function ExperimentPage({ def }: { def: ExperimentDefinition }) {
 
   const loadSamples = async () => {
     try {
-      const recs = await Promise.all((def.demoDatasets ?? []).map(fetchRecording));
+      const recs = [...(await Promise.all((def.demoDatasets ?? []).map(fetchRecording))), ...(def.sampleRecordings?.() ?? [])];
       setLoadError(null);
       trials.addMany(recs.map((recording) => ({ recording, origin: 'sample' as const })));
       reveal();
@@ -56,6 +59,7 @@ export function ExperimentPage({ def }: { def: ExperimentDefinition }) {
   return (
     <article className="experiment">
       <CaptureOverlay def={def} state={state} live={live} onCancel={cancel} />
+      <Tour id="experiment" steps={EXPERIMENT_TOUR} />
 
       <a className="back no-print" href={href({ page: 'catalog' })}>
         ← All experiments
@@ -64,11 +68,19 @@ export function ExperimentPage({ def }: { def: ExperimentDefinition }) {
         <p className="eyebrow">{def.subject}</p>
         <h1>{def.title}</h1>
         <p className="lede">{def.tagline}</p>
+        {def.custom && (
+          <a className="button no-print" href={href({ page: 'create', id: def.id })}>
+            ✎ Edit this experiment
+          </a>
+        )}
         <p className="print-only report-meta">PocketLab lab report · printed {new Date().toLocaleDateString()}</p>
       </header>
 
+      <StepBar current={trials.trials.length ? 'step-results' : 'step-setup'} reached={trials.trials.length ? 'step-results' : 'step-setup'} />
+
       <div className="exp-grid">
-        <section className="panel guide">
+        <section className="panel guide" id="step-setup" data-tour="setup">
+          <StepHeading id="step-setup" />
           {def.illustration && <div className="illustration" dangerouslySetInnerHTML={{ __html: def.illustration }} />}
           <h3>You need</h3>
           <ul>
@@ -110,7 +122,7 @@ export function ExperimentPage({ def }: { def: ExperimentDefinition }) {
         <code className="formula">{def.theory.formula}</code>
       </section>
 
-      <div ref={resultsRef} className="results-anchor">
+      <div ref={resultsRef} className="results-anchor" id="step-results">
         <ResultsSection
           def={def}
           trials={trials.trials}

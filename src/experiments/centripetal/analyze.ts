@@ -39,6 +39,13 @@ export function analyzeCentripetal(rec: Recording): AnalysisResult {
 
   const n = gyro[0].length;
   const omegaRaw = Float64Array.from({ length: n }, (_, i) => Math.hypot(gyro[0][i], gyro[1][i], gyro[2][i]));
+  if (rec.meta?.hasGyroscope === false || Math.max(...omegaRaw) < 0.05) {
+    return {
+      ok: false,
+      error: 'This phone did not report any rotation: it probably has no gyroscope.',
+      hint: 'This experiment needs a gyroscope. The pendulum and singing-tube experiments work without one.',
+    };
+  }
   const omega = lowPass(omegaRaw, sr, 2);
   const factor = Math.max(1, Math.round(sr / FIT_RATE));
   const w = decimate(omega, factor);
@@ -106,6 +113,7 @@ export function analyzeCentripetal(rec: Recording): AnalysisResult {
     charts: [
       {
         title: 'Centripetal acceleration vs ω²',
+        caption: 'Each dot is one moment of the spin. Spinning faster (right) pulls the phone harder towards the centre (up). Points on a straight line prove a = ω²r — and the steepness of that line is the radius.',
         xLabel: 'ω² (rad²/s²)',
         yLabel: 'a (m/s²)',
         series: [
@@ -113,7 +121,13 @@ export function analyzeCentripetal(rec: Recording): AnalysisResult {
           line('best fit a = rω²', [0, xMax], [scalar.intercept, scalar.intercept + scalar.slope * xMax], 1),
         ],
       },
-      { title: 'Spin rate over time', xLabel: 'time (s)', yLabel: 'ω (rad/s)', series: [line('ω', t, omega, 2)] },
+      {
+        title: 'Spin rate over time',
+        caption: 'How fast the chair turned during the recording. A good run starts fast and slows down smoothly, so the graph above gets points at many different speeds.',
+        xLabel: 'time (s)',
+        yLabel: 'ω (rad/s)',
+        series: [line('ω', t, omega, 2)],
+      },
     ],
     steps: [
       `ω is the length of the gyroscope vector; ${keep.length} samples (thinned to ${FIT_RATE} Hz) with ω ≥ ${MIN_OMEGA} rad/s were used.`,

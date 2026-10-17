@@ -19,7 +19,17 @@ const INFO: Record<SensorKind, { title: string; what: string; preview: (s: Recor
   },
 };
 
-type Status = { state: 'idle' } | { state: 'running'; rate: number; values: Record<string, number> } | { state: 'error'; message: string; hint?: string };
+type Status =
+  | { state: 'idle' }
+  | { state: 'running'; rate: number; values: Record<string, number>; gyro: boolean }
+  | { state: 'error'; message: string; hint?: string };
+
+/** Which experiments each capability unlocks — shown so students know what they can do. */
+const UNLOCKS = {
+  accelerometer: ['Pendulum (accelerometer mode)'],
+  gyroscope: ['Pendulum (best accuracy)', 'Spinning chair'],
+  audio: ['Singing tube'],
+};
 
 function SensorCard({ kind }: { kind: SensorKind }) {
   const info = INFO[kind];
@@ -43,14 +53,16 @@ function SensorCard({ kind }: { kind: SensorKind }) {
         const t0 = performance.now();
         let count = 0;
         let latest: Record<string, number> = {};
+        let gyro = false;
         live.current = { t: [], v: [] };
         s.start((sample) => {
           count++;
           latest = sample;
+          if (Math.abs(sample.gx ?? 0) + Math.abs(sample.gy ?? 0) + Math.abs(sample.gz ?? 0) > 1e-4) gyro = true;
           live.current.t.push((performance.now() - t0) / 1000);
           live.current.v.push(info.preview(sample));
         });
-        setStatus({ state: 'running', rate: 0, values: {} });
+        setStatus({ state: 'running', rate: 0, values: {}, gyro: false });
         timer.current = window.setInterval(() => {
           const elapsed = (performance.now() - t0) / 1000;
           if (elapsed > 1.5 && count === 0) {
@@ -58,7 +70,7 @@ function SensorCard({ kind }: { kind: SensorKind }) {
             setStatus({ state: 'error', message: 'No data received from this sensor.', hint: 'Desktop browsers often report sensors that do not exist. Try on a phone.' });
             return;
           }
-          setStatus({ state: 'running', rate: count / elapsed, values: latest });
+          setStatus({ state: 'running', rate: count / elapsed, values: latest, gyro });
         }, 250);
       },
       (e: unknown) => {
@@ -78,9 +90,27 @@ function SensorCard({ kind }: { kind: SensorKind }) {
       <p className="hint">{info.what}</p>
       {status.state === 'running' ? (
         <>
-          <p className="sensor-ok">
-            {status.rate > 0 ? `✓ Working · ${kind === 'motion' ? `${status.rate.toFixed(0)} samples/s` : 'receiving audio'}` : 'Starting…'}
-          </p>
+          {status.rate === 0 ? (
+            <p className="sensor-ok">Starting…</p>
+          ) : kind === 'motion' ? (
+            <ul className="capabilities">
+              <li className={status.rate >= 15 ? 'yes' : 'no'}>
+                Accelerometer · {status.rate.toFixed(0)} readings/s
+                {status.rate < 15 && ' — too slow: turn off battery saver'}
+              </li>
+              <li className={status.gyro ? 'yes' : 'unknown'}>
+                Gyroscope · {status.gyro ? 'working' : 'no rotation yet — rotate the phone; if nothing changes, it has none'}
+              </li>
+              <li className="unlocks">
+                Works here: {[...UNLOCKS.accelerometer, ...(status.gyro ? UNLOCKS.gyroscope : [])].join(', ')}
+              </li>
+            </ul>
+          ) : (
+            <ul className="capabilities">
+              <li className="yes">Microphone · receiving audio</li>
+              <li className="unlocks">Works here: {UNLOCKS.audio.join(', ')}</li>
+            </ul>
+          )}
           <div className="sensor-values">
             {Object.entries(status.values).map(([k, v]) => (
               <span key={k}>

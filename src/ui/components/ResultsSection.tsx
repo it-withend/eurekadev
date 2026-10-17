@@ -6,6 +6,7 @@ import { downloadText } from '../download';
 import { ParamForm } from './ParamForm';
 import { ResultView } from './ResultView';
 import { TrialsTable } from './TrialsTable';
+import { StepHeading } from './Steps';
 
 function Failure({ result }: { result: Extract<AnalysisResult, { ok: false }> }) {
   return (
@@ -82,7 +83,7 @@ export function ResultsSection({
   return (
     <section className="results">
       <div className="results-bar">
-        <h2>Results</h2>
+        <StepHeading id="step-results" />
         <span className="spacer" />
         <span className="no-print bar-actions">
           <button onClick={() => window.print()}>Lab report (PDF)</button>
@@ -100,7 +101,7 @@ export function ResultsSection({
         </span>
       </div>
 
-      <div className="panel trials-panel">
+      <div className="panel trials-panel" data-tour="trials">
         <h3>Trials</h3>
         <TrialsTable def={def} trials={trials} selectedId={selected?.id ?? null} onSelect={onSelect} onRemove={onRemove} />
       </div>

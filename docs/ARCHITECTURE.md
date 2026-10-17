@@ -78,6 +78,21 @@ scatter between trials and the combined per-trial uncertainty. A plugin can over
 this with `summarize()`. The pendulum does: when the length was varied it fits
 T² against L, the classic school investigation.
 
+**Student-made experiments are plugins too.** A `CustomExperimentSpec`
+(`src/experiments/custom/`) is plain JSON: a *measure* (period, frequency, pitch,
+peak, spin — each an axis-agnostic extractor), the student's variables and a
+formula. `createCustomExperiment` turns it into an ordinary `ExperimentDefinition`,
+so capture, trials, uncertainty, charts and the report need no special cases.
+Formulas go through a hand-written recursive-descent parser (`core/expression.ts`):
+no `eval`, so a shared file cannot run code, and errors carry a position for the
+editor to highlight. Uncertainty is propagated numerically by nudging each uncertain
+input by its ±.
+
+**Platform independence, tested.** Raw sensor post-processing lives in pure
+functions (`core/sensors/processing.ts`) used both by the live adapters and by
+`testing/platforms.ts`, which simulates how iOS, Android, Firefox and budget
+phones deliver events. See [COMPATIBILITY.md](COMPATIBILITY.md).
+
 **Hands-free capture.** During a measurement the phone is swinging or spinning, so
 the UI layer gives audio and vibration cues at start and stop, holds a screen wake
 lock (sleeping screens throttle sensors on many phones), and shows a full-screen

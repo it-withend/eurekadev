@@ -20,7 +20,7 @@ export function CaptureOverlay({
   onCancel: () => void;
 }) {
   if (state.phase !== 'countdown' && state.phase !== 'recording' && state.phase !== 'preparing') return null;
-  const prompt = PROMPT[def.sensor];
+  const prompt = def.capturePrompts ?? PROMPT[def.sensor];
   const progress = state.phase === 'recording' ? Math.min(1, state.elapsed / def.durationSec) : 0;
   return (
     <div className={`overlay ${state.phase}`} role="dialog" aria-modal="true" aria-label="Measurement in progress">

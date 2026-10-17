@@ -100,11 +100,18 @@ export function analyzeResonance(rec: Recording): AnalysisResult {
     charts: [
       {
         title: 'Sound spectrum',
+        caption: 'Your sound split into pitches (frequencies). The tube amplifies one pitch most: the marked peak is the note it sings, and that is the frequency f used below.',
         xLabel: 'frequency (Hz)',
         yLabel: 'power (dB)',
         series: [line('spectrum', freqs.subarray(0, top), db, 0), points('resonance', [f], [peakDb], 1)],
       },
-      { title: 'Recorded sound', xLabel: 'time (s)', yLabel: 'amplitude', series: [line('audio', t, audio, 2)] },
+      {
+        title: 'Recorded sound',
+        caption: 'The raw microphone signal. A steady, thick band means a steady note — gaps or spikes mean the note stopped or something else was loud.',
+        xLabel: 'time (s)',
+        yLabel: 'amplitude',
+        series: [line('audio', t, audio, 2)],
+      },
     ],
     steps: [
       `Averaged ${res.spectrum.segments.length} windowed FFT spectra (Welch's method, ${fmt(res.spectrum.binWidth, 2)} Hz bins).`,

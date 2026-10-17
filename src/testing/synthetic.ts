@@ -174,3 +174,60 @@ export function synthCentripetal(o: {
     meta: { synthetic: true, note: `Simulated spinning chair, r = ${o.radius} m` },
   });
 }
+
+/** Generic samples for student-made experiments (one per measure kind). */
+export function synthGenericMotion(o: {
+  kind: 'oscillation' | 'jolt' | 'spin';
+  /** Oscillation period (s), jolt size (m/s²) or spin rate (rad/s). */
+  value: number;
+  seconds?: number;
+  seed?: number;
+}): Recording {
+  const sr = 100;
+  const n = Math.round((o.seconds ?? 15) * sr);
+  const r = rng(o.seed ?? 4);
+  const ch = { ax: [] as number[], ay: [] as number[], az: [] as number[], gx: [] as number[], gy: [] as number[], gz: [] as number[] };
+  for (let i = 0; i < n; i++) {
+    const t = i / sr;
+    let bounce = 0;
+    let jolt = 0;
+    let spin = 0;
+    if (o.kind === 'oscillation') bounce = 2.5 * Math.exp(-t / 30) * Math.sin((2 * Math.PI * t) / o.value); // a weight on a spring
+    if (o.kind === 'jolt') jolt = o.value * Math.exp(-(((t - (o.seconds ?? 15) / 2) / 0.05) ** 2));
+    if (o.kind === 'spin') spin = t > 2 && t < n / sr - 2 ? o.value : 0;
+    ch.ax.push(0.05 * r.gauss());
+    ch.ay.push(0.05 * r.gauss());
+    ch.az.push(9.81 + bounce + jolt + 0.05 * r.gauss());
+    ch.gx.push(0.01 * r.gauss());
+    ch.gy.push(0.01 * r.gauss());
+    ch.gz.push(spin + 0.01 * r.gauss());
+  }
+  return createRecording({
+    experimentId: 'custom',
+    sensor: 'motion',
+    sampleRate: sr,
+    channels: ch,
+    params: {},
+    meta: { synthetic: true, note: `Simulated ${o.kind}` },
+  });
+}
+
+export function synthTone(o: { frequency: number; seconds?: number; sampleRate?: number; seed?: number }): Recording {
+  const sr = o.sampleRate ?? 8000;
+  const n = Math.round((o.seconds ?? 3) * sr);
+  const r = rng(o.seed ?? 5);
+  const audio = Float64Array.from({ length: n }, (_, i) => {
+    const t = i / sr;
+    // A plucked string: fundamental plus weaker harmonics, slowly decaying.
+    const env = Math.exp(-t / 2);
+    return env * (0.4 * Math.sin(2 * Math.PI * o.frequency * t) + 0.15 * Math.sin(4 * Math.PI * o.frequency * t)) + 0.01 * r.gauss();
+  });
+  return createRecording({
+    experimentId: 'custom',
+    sensor: 'audio',
+    sampleRate: sr,
+    channels: { audio },
+    params: {},
+    meta: { synthetic: true, note: `Simulated tone at ${o.frequency} Hz` },
+  });
+}

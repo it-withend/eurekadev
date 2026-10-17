@@ -40,6 +40,18 @@ For every measurement, PocketLab:
 - **produces a lab report**: worksheet with hypothesis, conclusion and error-source discussion,
   printable to PDF, plus raw data as JSON/CSV.
 
+**Design your own experiment.** The builder lets students measure anything that swings, bounces,
+spins, jolts or makes a sound: pick what the phone measures (period, frequency, pitch, peak
+acceleration, rotation speed), add their own variables and write a formula as in a textbook
+(`4π²m/T²` works). PocketLab parses it safely (no `eval`), checks it as they type, propagates
+uncertainties through it and treats the result like any built-in experiment. Experiments can be
+exported as files and shared with classmates. Templates: spring constant, playground swing,
+musical note, jump landing, turntable speed.
+
+**Guided from the first second.** A game-style interactive tour (the page dims and blurs around
+the element being explained) on first visit, a step bar (Set up → Measure → Results → Write up),
+plain-language captions under every chart and full-screen instructions during recording.
+
 On a laptop without sensors, every experiment has **sample data**: simulated
 recordings, clearly labelled, so judges and teachers can try the full analysis.
 
@@ -55,6 +67,14 @@ PocketLab is complementary: **one guided experiment at a time, from setup to
 conclusion.** It does the signal processing automatically, but shows every step, so
 the method is visible rather than hidden. It runs in any browser from a link, with no
 install or account, and works offline once loaded.
+
+## Device compatibility
+
+Browsers expose phone sensors differently (iOS inverts accelerations and labels gyroscope axes
+differently, sample rates range from 25 to 200 Hz, some phones lack a gyroscope…). Every analysis
+is written to be independent of those differences, and an automated matrix runs each experiment
+through simulated iPhone, Android, Firefox, budget and old-phone sensor streams.
+See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## Validation
 
@@ -77,7 +97,7 @@ Requires Node.js 20 or newer.
 npm install
 npm run dev          # http://localhost:5173 (desktop; use sample data)
 npm run dev:phone    # HTTPS on your LAN; open the printed https://<ip>:5173 on a phone
-npm test             # unit + physics ground-truth tests
+npm test             # 73 tests: DSP, physics ground truth, platform matrix, formulas, builder
 npm run lint         # ESLint, including architecture layer rules
 npm run build        # static site in dist/
 ```

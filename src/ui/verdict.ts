@@ -1,6 +1,6 @@
 import type { Comparison } from '@core/types';
 
-export type Verdict = 'agrees' | 'close' | 'off' | 'imprecise';
+export type Verdict = 'agrees' | 'close' | 'off' | 'imprecise' | 'none';
 
 /** Above this relative uncertainty a result cannot confirm or refute anything. */
 const MAX_RELATIVE_UNCERTAINTY = 0.1;
@@ -11,6 +11,10 @@ const MAX_RELATIVE_UNCERTAINTY = 0.1;
  * 14 ± 22 m/s² "agrees" with 9.81 without having measured anything.
  */
 export function agreement(c: Comparison): { errorPct: number; sigmas: number; verdict: Verdict } {
+  if (c.accepted === undefined) {
+    const relative = c.uncertainty / Math.abs(c.measured);
+    return { errorPct: NaN, sigmas: NaN, verdict: relative > MAX_RELATIVE_UNCERTAINTY ? 'imprecise' : 'none' };
+  }
   const diff = c.measured - c.accepted;
   const errorPct = (Math.abs(diff) / Math.abs(c.accepted)) * 100;
   // Both sides can be uncertain (a ruler reading is), so combine them.
@@ -27,6 +31,7 @@ export const VERDICT_TITLE: Record<Verdict, string> = {
   close: 'Close — but something shifted your result',
   off: 'Far from the accepted value',
   imprecise: 'Too uncertain to draw a conclusion',
+  none: 'Your measured value',
 };
 
 /** Plain-language interpretation for a 13-year-old, no statistics vocabulary required. */
@@ -34,6 +39,8 @@ export function explain(c: Comparison): string {
   const { errorPct, verdict } = agreement(c);
   const pct = errorPct < 0.1 ? 'less than 0.1 %' : `${errorPct.toFixed(errorPct < 10 ? 1 : 0)} %`;
   switch (verdict) {
+    case 'none':
+      return `There is no textbook value to compare with — this is your own investigation. The ± part (${c.uncertainty.toPrecision(2)} ${c.unit}) says how precise your measurement is. Repeat it a few times: if the trials agree with each other, you can trust the result.`;
     case 'agrees':
       return `You are ${pct} away from the accepted value. Every measurement has some uncertainty (the ± part), and the accepted value lies inside the range you could expect — so your experiment confirms it. Great work!`;
     case 'close':
@@ -41,7 +48,7 @@ export function explain(c: Comparison): string {
     case 'imprecise':
       return `The uncertainty (± part) is so large that this result could match almost anything. The measurements disagree with each other, or the signal was too weak. Check each trial below for one that looks wrong, fix or delete it, and record more trials.`;
     case 'off': {
-      const ratio = c.measured / c.accepted;
+      const ratio = c.measured / (c.accepted ?? c.measured);
       const units =
         ratio > 50 || ratio < 0.02
           ? ' The result is off by a factor of about 100, which usually means a value was entered in the wrong unit (cm vs m) — use "Fix parameters".'

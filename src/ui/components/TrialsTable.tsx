@@ -59,7 +59,7 @@ export function TrialsTable({
                     <span className="bad">failed</span>
                   )}
                 </td>
-                <td>{p ? `${agreement(p).errorPct.toFixed(2)} %` : '—'}</td>
+                <td>{p && p.accepted !== undefined ? `${agreement(p).errorPct.toFixed(2)} %` : '—'}</td>
                 <td className="no-print">{ORIGIN[t.origin]}</td>
                 <td className="no-print">
                   <button

@@ -1,14 +1,18 @@
-import { registry } from '@experiments/index';
 import { CatalogPage } from '@ui/pages/CatalogPage';
 import { ExperimentPage } from '@ui/pages/ExperimentPage';
 import { AboutPage } from '@ui/pages/AboutPage';
+import { CreatePage } from '@ui/pages/CreatePage';
 import { SensorCheckPage } from '@ui/pages/SensorCheckPage';
 import { ErrorBoundary } from '@ui/components/ErrorBoundary';
+import { useExperiments } from '@ui/customStore';
 import { href, useRoute } from '@ui/router';
+import { startTour } from '@ui/tour/Tour';
 
 export function App() {
   const route = useRoute();
-  const def = route.page === 'experiment' ? registry.get(route.id) : undefined;
+  const experiments = useExperiments();
+  const def = route.page === 'experiment' ? experiments.get(route.id) : undefined;
+  const builtIn = experiments.list().filter((e) => !e.custom);
 
   return (
     <div className="shell">
@@ -22,8 +26,12 @@ export function App() {
         </a>
         <nav>
           <a href={href({ page: 'catalog' })}>Experiments</a>
-          <a href={href({ page: 'sensors' })}>Sensor check</a>
-          <a href={href({ page: 'about' })}>About</a>
+          <a href={href({ page: 'sensors' })} data-tour="nav-sensors">
+            Sensors
+          </a>
+          <button className="guide-btn" data-tour="nav-guide" onClick={() => startTour()}>
+            ? Guide
+          </button>
         </nav>
       </header>
 
@@ -32,7 +40,8 @@ export function App() {
         <ErrorBoundary key={href(route)}>
           {route.page === 'about' && <AboutPage />}
           {route.page === 'sensors' && <SensorCheckPage />}
-          {route.page === 'catalog' && <CatalogPage registry={registry} />}
+          {route.page === 'catalog' && <CatalogPage builtIn={builtIn} custom={experiments.custom} />}
+          {route.page === 'create' && <CreatePage key={route.id ?? 'new'} id={route.id} />}
           {route.page === 'experiment' &&
             (def ? (
               <ExperimentPage key={def.id} def={def} />
@@ -45,7 +54,8 @@ export function App() {
       </main>
 
       <footer className="footer no-print">
-        Runs entirely on your device · Open source · Built for EurekaDev 2026
+        Runs entirely on your device · <a href={href({ page: 'about' })}>About PocketLab</a> · Open source · Built for
+        EurekaDev 2026
       </footer>
     </div>
   );

@@ -100,7 +100,7 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
             channels: capture.channels,
             params,
             startedAt,
-            meta: { device: capture.device },
+            meta: { device: capture.device, ...capture.meta },
           }),
         );
       } catch (e) {

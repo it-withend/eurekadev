@@ -26,11 +26,14 @@ export function meanOfTrials(trials: TrialData[]): AnalysisResult {
     charts: [
       {
         title: `${first.symbol} in each trial`,
+        caption: 'Each dot is one trial. Dots close to each other mean your measurements are repeatable; the mean line should sit near the accepted line.',
         xLabel: 'trial',
         yLabel: `${first.symbol} (${first.unit})`,
         series: [
           { name: 'trials', x: idx, y: values, style: 'points', color: 0 },
-          { name: 'accepted', x: [0.5, n + 0.5], y: [first.accepted, first.accepted], style: 'line', color: 1 },
+          ...(first.accepted !== undefined
+            ? [{ name: 'accepted', x: [0.5, n + 0.5], y: [first.accepted, first.accepted], style: 'line' as const, color: 1 }]
+            : []),
           { name: 'mean', x: [0.5, n + 0.5], y: [m, m], style: 'line', color: 2 },
         ],
       },

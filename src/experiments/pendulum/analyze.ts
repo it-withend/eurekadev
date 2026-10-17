@@ -110,6 +110,9 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
       title: hasGyro ? `Angular velocity (${source.name}, filtered)` : `String tension signal (${source.name}, filtered)`,
       xLabel: 'time (s)',
       yLabel: hasGyro ? 'ω (rad/s)' : 'a (m/s²)',
+      caption: hasGyro
+        ? 'Each wave is one swing: how fast the phone was rotating back and forth. Orange dots mark the start of each swing — the time between two dots is the period T.'
+        : 'The string tension rises at the bottom of every swing, so this signal wiggles twice per swing. Orange dots mark the cycles used to time it.',
       series: [line('signal', t, signal, 0), points('zero crossings', est.crossings, crossingsY, 1)],
     },
   ];
@@ -118,6 +121,7 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
     const lim = freqs.findIndex((f) => f > fMaxSearch);
     charts.push({
       title: 'Frequency spectrum',
+      caption: 'The same motion split into frequencies. The tall peak is how many times per second the pendulum swings — a second, independent way to find T.',
       xLabel: 'frequency (Hz)',
       yLabel: 'power',
       series: [line('spectrum', freqs.subarray(0, lim), power.subarray(0, lim), 2)],
@@ -224,6 +228,7 @@ export function summarizePendulum(trials: TrialData[]): AnalysisResult | null {
     charts: [
       {
         title: 'Period² against length',
+        caption: 'Each dot is one trial. Theory says longer pendulums swing slower so that T² grows in a straight line with L. The steepness of the line gives g.',
         xLabel: 'L (m)',
         yLabel: 'T₀² (s²)',
         series: [
