@@ -167,6 +167,23 @@ function pitchExtract(rec: Recording): Extraction {
 
 /* ---------- peak acceleration ---------- */
 
+/**
+ * Sensor noise from the quietest half-second of the recording. Taking the
+ * whole recording would count the activity itself (a crouch before a jump)
+ * as "noise" — a real iPhone test reported 4.2 m/s² that way instead of ~0.05.
+ */
+function quietNoise(x: ArrayLike<number>, sampleRate: number): number {
+  const win = Math.max(10, Math.round(sampleRate / 2));
+  let best = Infinity;
+  for (let start = 0; start + win <= x.length; start += Math.ceil(win / 2)) {
+    best = Math.min(best, std(Array.prototype.slice.call(x, start, start + win) as number[]));
+  }
+  return Number.isFinite(best) ? best : std(x);
+}
+
+/** A 60 Hz sensor samples an impact only every 17 ms, so a sharp peak can be missed by a few percent. */
+const PEAK_SAMPLING_UNCERTAINTY = 0.03;
+
 function peakExtract(rec: Recording): Extraction {
   const [ax, ay, az] = ACCEL.map((c) => rec.channels[c]);
   if (!ax || !ay || !az) return { ok: false, error: 'Recording is missing accelerometer data.' };
@@ -177,7 +194,7 @@ function peakExtract(rec: Recording): Extraction {
   let peak = 0;
   let at = 0;
   for (let i = 0; i < jolt.length; i++) if (Math.abs(jolt[i]) > Math.abs(peak)) [peak, at] = [jolt[i], i];
-  const noise = std(Array.from(jolt).filter((v) => Math.abs(v) < 3 * std(jolt)));
+  const noise = quietNoise(jolt, rec.sampleRate);
   if (Math.abs(peak) < 5 * noise) {
     return { ok: false, error: 'No clear jolt was found.', hint: 'The event must be stronger than the phone simply being held.' };
   }
@@ -185,7 +202,7 @@ function peakExtract(rec: Recording): Extraction {
   return {
     ok: true,
     value: Math.abs(peak),
-    uncertainty: Math.max(noise, Math.abs(peak) * 0.02),
+    uncertainty: Math.hypot(noise, Math.abs(peak) * PEAK_SAMPLING_UNCERTAINTY),
     charts: [
       {
         title: 'Acceleration beyond gravity',
@@ -198,6 +215,7 @@ function peakExtract(rec: Recording): Extraction {
     steps: [
       `Total acceleration |a| at rest was ${fmt(rest, 2)} m/s² (that is gravity).`,
       `The biggest departure from rest was ${fmt(Math.abs(peak), 2)} m/s² at t = ${fmt(at / rec.sampleRate, 2)} s (≈ ${fmt(Math.abs(peak) / 9.81, 1)} g).`,
+      `Uncertainty: sensor noise (${fmt(noise, 3)} m/s², from the quietest moment) combined with ${PEAK_SAMPLING_UNCERTAINTY * 100} % because the sensor reads only every few milliseconds and can miss the very top of a sharp impact.`,
     ],
     measurements: [
       { label: 'Gravity at rest (check)', value: rest, unit: 'm/s²', digits: 2 },

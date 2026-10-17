@@ -52,6 +52,7 @@ gyroscope). It then runs **the same processing code the phone runs**
 | Device | Browser | Sensor check | Pendulum | Singing tube | Spinning chair | Notes |
 |---|---|---|---|---|---|---|
 | iPhone (model to fill in) | Safari | | | | ✗ → fixed | Found the gyroscope axis-label difference, fixed in `df3df26`; re-test pending |
+| iPhone 12 Pro | Safari | | | | | Student-made "jump landing": peak 3.8 g detected, gravity at rest 9.74 m/s² ✓. Found the noise estimate counting the jump itself (gave ± 0.4 g, "too uncertain"); fixed to use the quietest half-second |
 | _add your phone_ | | | | | | |
 
 What only a real device can confirm (and what simulations cannot):

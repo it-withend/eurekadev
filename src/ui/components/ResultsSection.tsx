@@ -39,7 +39,10 @@ function TrialDetail({
       <h3 className="block-title">
         Trial {trial.number}
         <span className="tag">
-          {ORIGIN_TEXT(trial)} · {durationOf(trial.recording).toFixed(1)} s @ {Math.round(trial.recording.sampleRate)} Hz
+          {ORIGIN_TEXT(trial)} · {durationOf(trial.recording).toFixed(1)} s ·{' '}
+          {/* Show what the hardware delivered, not the rate we resampled to. */}
+          {Math.round(trial.recording.meta?.eventRate ?? trial.recording.sampleRate)} Hz
+          {trial.recording.sensor === 'motion' ? ' sensor' : ' audio'}
         </span>
         <button className="link no-print" onClick={() => setEditing(!editing)} aria-expanded={editing}>
           {editing ? 'Done' : 'Fix parameters'}

@@ -182,6 +182,8 @@ export function synthGenericMotion(o: {
   value: number;
   seconds?: number;
   seed?: number;
+  /** Jolt only: surround it with a whole jump (crouch, push-off, free fall, wobble), like a real iPhone recording. */
+  realisticJump?: boolean;
 }): Recording {
   const sr = 100;
   const n = Math.round((o.seconds ?? 15) * sr);
@@ -193,7 +195,16 @@ export function synthGenericMotion(o: {
     let jolt = 0;
     let spin = 0;
     if (o.kind === 'oscillation') bounce = 2.5 * Math.exp(-t / 30) * Math.sin((2 * Math.PI * t) / o.value); // a weight on a spring
-    if (o.kind === 'jolt') jolt = o.value * Math.exp(-(((t - (o.seconds ?? 15) / 2) / 0.05) ** 2));
+    if (o.kind === 'jolt') {
+      const land = (o.seconds ?? 15) / 2;
+      jolt = o.value * Math.exp(-(((t - land) / 0.05) ** 2));
+      if (o.realisticJump) {
+        const dt = t - land;
+        if (dt > -1.4 && dt < -0.5) jolt += 0.6 * o.value * Math.sin(9 * dt) * Math.sin((Math.PI * (dt + 1.4)) / 0.9); // crouch and push
+        if (dt > -0.45 && dt < -0.05) jolt -= 9.81; // free fall: the phone feels almost nothing
+        if (dt > 0.05 && dt < 1) jolt += 0.4 * o.value * Math.exp(-dt * 4) * Math.sin(25 * dt); // knees absorbing
+      }
+    }
     if (o.kind === 'spin') spin = t > 2 && t < n / sr - 2 ? o.value : 0;
     ch.ax.push(0.05 * r.gauss());
     ch.ay.push(0.05 * r.gauss());

@@ -36,7 +36,10 @@ export function MeasurePanel({
   return (
     <section className="panel measure no-print" id="step-measure" data-tour="measure">
       <StepHeading id="step-measure" />
-      <p className="hint step-intro">Enter what you measured with the ruler, then press Start. Beeps tell you when recording starts and stops, so you don’t need to watch the screen.</p>
+      <p className="hint step-intro">
+        {def.params.some((p) => p.kind === 'number') ? 'Enter the values you measured, then press Start. ' : 'Nothing to enter here — just press Start. '}
+        Beeps tell you when recording starts and stops, so you don’t need to watch the screen.
+      </p>
       <ParamForm specs={def.params} values={params} onChange={onParamsChange} disabled={busy} />
       <div className="actions">
         <button className="primary" data-tour="start" onClick={onStart} disabled={busy || invalid}>

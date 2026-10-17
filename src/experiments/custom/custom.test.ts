@@ -46,6 +46,14 @@ describe('student-made experiments', () => {
     expect(spin.primary.measured).toBeCloseTo(33.3, 0);
   });
 
+  it('jump: noise is measured on the quiet part, not on the jump itself (iPhone 12 Pro regression)', () => {
+    // A real recording gave 3.8 ± 0.4 g, "too uncertain", because the noise estimate included the jump.
+    const rec = synthGenericMotion({ kind: 'jolt', value: 37, realisticJump: true, seconds: 6 });
+    const r = ok(createCustomExperiment(template('jump')).analyze(rec));
+    expect(r.primary.measured).toBeCloseTo(37 / 9.81, 1);
+    expect(r.primary.uncertainty / r.primary.measured).toBeLessThan(0.06);
+  });
+
   it('sample recordings of every template analyse successfully', () => {
     for (const t of TEMPLATES.filter((t) => t.key !== 'blank')) {
       const def = createCustomExperiment(fromTemplate(t.spec));
