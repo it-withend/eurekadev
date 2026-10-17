@@ -1,0 +1,28 @@
+import type { ExperimentDefinition } from '@core/types';
+import { analyzeResonance, resonanceParams } from './analyze';
+
+export const resonance: ExperimentDefinition = {
+  id: 'resonance',
+  title: 'Speed of Sound from a Singing Tube',
+  tagline: 'Blow across a tube, let the microphone hear its note, compute the speed of sound.',
+  subject: 'Waves & Sound',
+  sensor: 'audio',
+  durationSec: 4,
+  params: resonanceParams,
+  materials: ['Your phone', 'A tall cylindrical glass, bottle-free tube or a paper-towel roll', 'A ruler'],
+  instructions: [
+    'Measure the inside length and diameter of the tube and enter them below.',
+    'Pick the tube type: a glass is closed at one end, a paper roll is open at both.',
+    'Hold the phone’s microphone near the open end.',
+    'Press Start and blow gently across the opening (like a flute) until you hear a steady low note.',
+  ],
+  theory: {
+    summary:
+      'An air column resonates when a whole number of quarter-wavelengths fits inside it. The microphone hears that note; a Fourier transform finds its exact frequency, and wavelength × frequency gives the speed of sound.',
+    formula: 'closed: v = 4f(L + 0.3d)    open: v = 2f(L + 0.6d)',
+  },
+  demoDataset: 'datasets/resonance-demo.json',
+  preview: (s) => s.rms,
+  previewLabel: 'loudness (RMS)',
+  analyze: analyzeResonance,
+};

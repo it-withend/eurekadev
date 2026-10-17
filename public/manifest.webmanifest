@@ -1,0 +1,10 @@
+{
+  "name": "PocketLab",
+  "short_name": "PocketLab",
+  "description": "Turn any smartphone into a physics lab.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4ee",
+  "theme_color": "#d9480f",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

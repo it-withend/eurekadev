@@ -1,0 +1,83 @@
+import { describe, expect, it } from 'vitest';
+import { synthCentripetal, synthPendulum, synthResonance } from '@testing/synthetic';
+import { parseRecording, withParams } from '@core/recording';
+import type { AnalysisResult } from '@core/types';
+import { registry } from './index';
+import { speedOfSound } from './resonance/analyze';
+
+function expectOk(r: AnalysisResult) {
+  if (!r.ok) throw new Error(`analysis failed: ${r.error}`);
+  return r;
+}
+
+const pendulum = registry.get('pendulum')!;
+const resonance = registry.get('resonance')!;
+const centripetal = registry.get('centripetal')!;
+
+describe('registry', () => {
+  it('lists all experiments with unique ids', () => {
+    expect(registry.list().map((e) => e.id)).toEqual(['pendulum', 'resonance', 'centripetal']);
+  });
+});
+
+describe('pendulum', () => {
+  it('recovers g within 0.5 % from a simulated small swing', () => {
+    const r = expectOk(pendulum.analyze(synthPendulum({ length: 1, g: 9.81, theta0: 0.15 })));
+    expect(Math.abs(r.primary.measured - 9.81) / 9.81).toBeLessThan(0.005);
+    expect(r.primary.uncertainty).toBeGreaterThan(0);
+  });
+
+  it('applies the large-amplitude correction', () => {
+    const rec = synthPendulum({ length: 0.8, g: 9.81, theta0: 0.6, seed: 7 });
+    const r = expectOk(pendulum.analyze(rec));
+    // Without the correction a 34° swing reads ~2 % low.
+    expect(Math.abs(r.primary.measured - 9.81) / 9.81).toBeLessThan(0.01);
+  });
+
+  it('result scales with the entered length (re-analysis with new params)', () => {
+    const rec = synthPendulum({ length: 1, g: 9.81 });
+    const a = expectOk(pendulum.analyze(rec)).primary.measured;
+    const b = expectOk(pendulum.analyze(withParams(rec, { length: 2 }))).primary.measured;
+    expect(b / a).toBeCloseTo(2, 6);
+  });
+
+  it('fails gracefully when the phone is still', () => {
+    const rec = synthPendulum({ length: 1, theta0: 0, noise: 0.001 });
+    expect(pendulum.analyze(rec).ok).toBe(false);
+  });
+});
+
+describe('resonance', () => {
+  it('measures the speed of sound in a closed tube within 2 %', () => {
+    const rec = synthResonance({ length: 0.3, diameter: 0.04, temperature: 22 });
+    const r = expectOk(resonance.analyze(rec));
+    expect(Math.abs(r.primary.measured - speedOfSound(22)) / speedOfSound(22)).toBeLessThan(0.02);
+  });
+
+  it('handles an open tube', () => {
+    const rec = synthResonance({ length: 0.25, diameter: 0.045, temperature: 18, mode: 1, seed: 9 });
+    const r = expectOk(resonance.analyze(rec));
+    expect(Math.abs(r.primary.measured - speedOfSound(18)) / speedOfSound(18)).toBeLessThan(0.02);
+  });
+});
+
+describe('centripetal', () => {
+  it('recovers the radius from the slope of a vs ω²', () => {
+    const r = expectOk(centripetal.analyze(synthCentripetal({ radius: 0.3 })));
+    expect(Math.abs(r.primary.measured - 0.3)).toBeLessThan(0.01);
+    expect(r.measurements[0].value).toBeGreaterThan(0.98);
+  });
+
+  it('asks for a faster spin when there is not enough data', () => {
+    expect(centripetal.analyze(synthCentripetal({ radius: 0.3, omega0: 1 })).ok).toBe(false);
+  });
+});
+
+describe('recording format', () => {
+  it('round-trips through JSON and rejects junk', () => {
+    const rec = synthPendulum({ length: 1, seconds: 5 });
+    expect(parseRecording(JSON.parse(JSON.stringify(rec)))).toEqual(rec);
+    expect(() => parseRecording({ format: 'nope' })).toThrow(/valid PocketLab/);
+    expect(() => parseRecording({ ...rec, channels: { a: [1, 2], b: [1] } })).toThrow(/different lengths/);
+  });
+});
