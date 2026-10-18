@@ -2,7 +2,8 @@
  * Vercel serverless function: POST /api/chat → AI tutor answer.
  * Set GROQ_API_KEY (and optionally GROQ_MODEL) in the Vercel project settings.
  */
-import { handleChat } from '../src/server/tutor';
+// Explicit .js: Vercel runs this as a native ES module, and Node needs file extensions.
+import { handleChat } from '../src/server/tutor.js';
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown = null;
