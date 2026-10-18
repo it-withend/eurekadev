@@ -6,6 +6,8 @@ import { fmt } from '../shared';
 import { MEASURES } from './measures';
 import type { CustomExperimentSpec } from './spec';
 
+const GLYPH = { period: 'bounce', frequency: 'bounce', pitch: 'spectrum', peak: 'jolt', spin: 'spin', tiltMax: 'tilt', tilt: 'level' } as const;
+
 /** Shows a formula with the student's numbers substituted, e.g. "4·π²·0.2 / 1.42²". */
 export function substitute(formula: string, values: Record<string, number>, digits: number): string {
   return formula.replace(/[A-Za-z_][A-Za-z0-9_]*/g, (name, offset: number, all: string) => {
@@ -144,6 +146,7 @@ export function createCustomExperiment(spec: CustomExperimentSpec): ExperimentDe
   return {
     id: spec.id,
     custom: true,
+    glyph: GLYPH[measure.id],
     title: spec.title,
     tagline: spec.description || `Measures ${measure.quantity.toLowerCase()}${spec.formula.trim() ? ` and computes ${result.name.toLowerCase()}` : ''}.`,
     subject: 'Your experiment',

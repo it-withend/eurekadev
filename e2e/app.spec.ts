@@ -7,6 +7,11 @@ async function skipTours(page: Page) {
   });
 }
 
+/** The experiment page shows one step at a time. */
+async function openStep(page: Page, name: 'Set up' | 'Measure' | 'Results' | 'Write up') {
+  await page.locator('.step-bar').getByRole('tab', { name: new RegExp(name) }).click();
+}
+
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
@@ -49,6 +54,7 @@ test('every built-in experiment analyses its sample data', async ({ page }) => {
   await skipTours(page);
   for (const id of ['pendulum', 'resonance', 'centripetal', 'spring-constant', 'friction', 'musical-note']) {
     await page.goto(`/#/experiment/${id}`);
+    await openStep(page, 'Measure');
     const real = page.getByRole('tab', { name: /Real lab/ });
     if (await real.count()) await real.click();
     await page.getByRole('button', { name: /Try sample data/ }).click();
@@ -61,6 +67,7 @@ test('every built-in experiment analyses its sample data', async ({ page }) => {
 test('invalid input blocks the measurement and a decimal comma is accepted', async ({ page }) => {
   await skipTours(page);
   await page.goto('/#/experiment/pendulum');
+  await openStep(page, 'Measure');
   await page.getByRole('tab', { name: /Real lab/ }).click();
   const length = page.getByLabel('Pendulum length L');
   const start = page.getByRole('button', { name: /Start measurement/ });
@@ -85,6 +92,7 @@ test('a student designs, saves and runs their own experiment', async ({ page }) 
   await page.getByRole('button', { name: 'Save and start measuring' }).click();
   await expect(page).toHaveURL(/#\/experiment\/my-how-stiff-is-a-spring-/);
   await expect(page.locator('h1')).toHaveText('How Stiff Is a Spring?');
+  await openStep(page, 'Measure');
   await page.getByRole('button', { name: /Try sample data/ }).click();
   await expect(page.locator('.headline-value').first()).toContainText('k =');
   // It now appears in the catalogue next to the built-in ones.
@@ -104,6 +112,8 @@ test('pages fit a phone screen', async ({ page }) => {
 test('virtual lab: a pendulum on the Moon, explained in simple words and with formulas', async ({ page }) => {
   await skipTours(page);
   await page.goto('/#/experiment/pendulum');
+  await expect(page.locator('#step-setup')).toBeVisible(); // the page opens on the set-up step
+  await openStep(page, 'Measure');
   await page.getByRole('tab', { name: /Virtual lab/ }).click();
   await expect(page.locator('.scene svg')).toBeVisible();
   await page.getByRole('button', { name: 'Moon' }).click();
@@ -122,6 +132,7 @@ test('catalogue: topic filter and search', async ({ page }) => {
   await skipTours(page);
   await page.goto('/');
   await expect(page.locator('[data-tour="experiments"] .card')).toHaveCount(12);
+  await expect(page.locator('.card .glyph').first()).toBeVisible();
   await page.getByRole('tab', { name: /Waves & Sound/ }).click();
   await expect(page.locator('[data-tour="experiments"] .card')).toHaveCount(3);
   await page.getByRole('tab', { name: /^All/ }).click();
@@ -133,7 +144,7 @@ test('AI tutor explains itself when it is not configured, without breaking the p
   await skipTours(page);
   await page.route('**/api/chat', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"not_configured"}' }));
   await page.goto('/#/experiment/pendulum/demo');
-  await page.getByRole('button', { name: /Ask the AI tutor/ }).first().click();
+  await page.locator('.tutor-fab').click();
   await page.getByRole('button', { name: 'Explain my result in simple words' }).click();
   await expect(page.getByRole('alert')).toContainText('not switched on');
 });
@@ -146,9 +157,34 @@ test('AI tutor shows the answer and sends the experiment context', async ({ page
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ reply: 'Your pendulum swung about once every 1.9 seconds.' }) });
   });
   await page.goto('/#/experiment/pendulum/demo');
-  await page.getByRole('button', { name: /Ask the AI tutor/ }).first().click();
+  // Ask once the sample results are on screen, as a student would.
+  await expect(page.locator('#step-results .headline').first()).toBeVisible();
+  await page.locator('.tutor-fab').click();
   await page.getByPlaceholder(/Type your question/).fill('Почему g немного больше?');
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.locator('.bubble.assistant')).toContainText('1.9 seconds');
   expect(sent.context).toContain('Combined result of all trials');
+});
+
+test('one step at a time: next/back buttons, results count, empty state', async ({ page }) => {
+  await skipTours(page);
+  await page.goto('/#/experiment/resonance');
+  await expect(page.locator('#step-setup')).toBeVisible();
+  await expect(page.locator('#step-results')).toBeHidden();
+  await page.getByRole('button', { name: 'Next: Measure' }).click();
+  await page.getByRole('button', { name: 'Next: Results' }).click();
+  await expect(page.getByText('No results yet')).toBeVisible();
+  await page.getByRole('button', { name: 'Go to Measure' }).click();
+  await page.getByRole('tab', { name: /Virtual lab/ }).click();
+  await page.getByRole('button', { name: /Run virtual experiment/ }).click();
+  // A new result opens the Results step and is counted on its tab.
+  await expect(page.locator('#step-results .headline').first()).toBeVisible();
+  await expect(page.locator('.step-bar .step-count')).toHaveText('1');
+});
+
+test('home page shows the live sensor trace', async ({ page }) => {
+  await skipTours(page);
+  await page.goto('/');
+  await expect(page.locator('.hero-trace canvas')).toBeVisible();
+  await expect(page.locator('.axis-label')).toHaveText(['x', 'y', 'z']);
 });

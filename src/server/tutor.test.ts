@@ -41,6 +41,33 @@ describe('AI tutor back end', () => {
     expect(typeof longContext !== 'string' && longContext.context.length).toBe(8000);
   });
 
+  it('accepts a follow-up question after a long tutor reply (regression)', () => {
+    // The 1000-character limit used to apply to the tutor's own replies too, so every second question failed.
+    const long = 'x'.repeat(3000);
+    const r = parseRequest({
+      messages: [
+        { role: 'user', content: 'Explain my result' },
+        { role: 'assistant', content: long },
+        { role: 'user', content: 'это какой класс' },
+      ],
+    });
+    expect(typeof r).not.toBe('string');
+    if (typeof r !== 'string') {
+      expect(r.messages[1].content.length).toBe(2500);
+      expect(r.messages.at(-1)!.content).toBe('это какой класс');
+    }
+  });
+
+  it('keeps long conversations within budget, newest first', () => {
+    const msgs = Array.from({ length: 12 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: (i % 2 ? 'a' : 'q').repeat(i % 2 ? 2500 : 900) }));
+    const r = parseRequest({ messages: msgs.slice(0, 11) });
+    expect(typeof r).not.toBe('string');
+    if (typeof r !== 'string') {
+      expect(r.messages.reduce((n, m) => n + m.content.length, 0)).toBeLessThanOrEqual(12000);
+      expect(r.messages.at(-1)!.role).toBe('user');
+    }
+  });
+
   it('rate-limits a single client', () => {
     for (let i = 0; i < 15; i++) expect(rateLimited('b', 1000 + i)).toBe(false);
     expect(rateLimited('b', 2000)).toBe(true);

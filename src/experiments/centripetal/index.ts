@@ -9,6 +9,7 @@ export const centripetal: ExperimentDefinition = {
   tagline: 'Prove a = ω²r with a desk chair and recover the radius from the slope.',
   subject: 'Rotation',
   icon: '🪑',
+  glyph: 'spin',
   sensor: 'motion',
   durationSec: 20,
   countdownSec: 5,

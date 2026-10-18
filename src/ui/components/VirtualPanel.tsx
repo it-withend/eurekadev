@@ -22,7 +22,6 @@ export function VirtualPanel({
 }) {
   const lab = def.virtual!;
   const [knobs, setKnobs] = useState<Record<string, number>>(() => Object.fromEntries(lab.controls.map((c) => [c.id, c.default])));
-  const [runs, setRuns] = useState(0);
   const playTone = useTone();
   const invalid = Object.keys(validateParams(def.params, params)).length > 0;
 
@@ -39,51 +38,58 @@ export function VirtualPanel({
         Change the set-up and watch what happens. Then run the experiment: the simulated sensor data is analysed exactly like a
         real measurement.
       </p>
-      <VirtualScene lab={lab} params={params} knobs={knobs} />
-      {lab.scene === 'tube' && !invalid && (
-        <button className="chip" onClick={() => playTone(tubeNote())}>
-          🔊 Hear the note ({tubeNote().toFixed(0)} Hz)
-        </button>
-      )}
-      <ParamForm specs={def.params} values={params} onChange={onParamsChange} />
-      {lab.controls.map((c) => (
-        <div key={c.id} className="param slider">
-          <label className="param-label" htmlFor={`knob-${c.id}`}>
-            {c.label}: <strong>{knobs[c.id]}</strong> {c.unit}
-          </label>
-          <input
-            id={`knob-${c.id}`}
-            type="range"
-            min={c.min}
-            max={c.max}
-            step={c.step}
-            value={knobs[c.id]}
-            onChange={(e) => setKnobs({ ...knobs, [c.id]: Number(e.target.value) })}
-          />
-          {c.presets && (
-            <span className="chips">
-              {c.presets.map((p) => (
-                <button key={p.label} className={`chip${knobs[c.id] === p.value ? ' on' : ''}`} onClick={() => setKnobs({ ...knobs, [c.id]: p.value })}>
-                  {p.label}
-                </button>
-              ))}
-            </span>
+      <div className="virtual-grid">
+        <div className="virtual-stage">
+          <VirtualScene lab={lab} params={params} knobs={knobs} />
+          {lab.scene === 'tube' && !invalid && (
+            <button className="chip" onClick={() => playTone(tubeNote())}>
+              🔊 Hear the note ({tubeNote().toFixed(0)} Hz)
+            </button>
           )}
         </div>
-      ))}
-      <div className="actions">
-        <button
-          className="primary"
-          data-tour="start"
-          disabled={invalid}
-          onClick={() => {
-            setRuns(runs + 1);
-            onResult(lab.simulate(params, knobs, Date.now() % 100000));
-          }}
-        >
-          ▶ Run virtual experiment
-        </button>
-        {invalid && <p className="param-error">Fix the highlighted values first.</p>}
+        <div className="virtual-controls">
+          <ParamForm specs={def.params} values={params} onChange={onParamsChange} />
+          {lab.controls.map((c) => (
+            <div key={c.id} className="param slider">
+              <label className="param-label" htmlFor={`knob-${c.id}`}>
+                {c.label}: <strong>{knobs[c.id]}</strong> {c.unit}
+              </label>
+              <input
+                id={`knob-${c.id}`}
+                type="range"
+                min={c.min}
+                max={c.max}
+                step={c.step}
+                value={knobs[c.id]}
+                onChange={(e) => setKnobs({ ...knobs, [c.id]: Number(e.target.value) })}
+              />
+              {c.presets && (
+                <span className="chips">
+                  {c.presets.map((p) => (
+                    <button
+                      key={p.label}
+                      className={`chip${knobs[c.id] === p.value ? ' on' : ''}`}
+                      onClick={() => setKnobs({ ...knobs, [c.id]: p.value })}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </span>
+              )}
+            </div>
+          ))}
+          <div className="actions">
+            <button
+              className="primary"
+              data-tour="start"
+              disabled={invalid}
+              onClick={() => onResult(lab.simulate(params, knobs, Date.now() % 100000))}
+            >
+              ▶ Run virtual experiment
+            </button>
+            {invalid && <p className="param-error">Fix the highlighted values first.</p>}
+          </div>
+        </div>
       </div>
       <p className="hint">
         Try it: double the length — does the swing time double? Then switch to <strong>Real lab</strong> and measure it for real.

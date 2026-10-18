@@ -12,7 +12,10 @@ export const GROQ_MODELS_URL = 'https://api.groq.com/openai/v1/models';
 export const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
 const MAX_MESSAGES = 12;
+/** Limit on what a student types. The tutor's own earlier replies are longer, and are shortened instead. */
 const MAX_MESSAGE_CHARS = 1000;
+const MAX_REPLY_CHARS = 2500;
+const MAX_HISTORY_CHARS = 12000;
 const MAX_CONTEXT_CHARS = 8000;
 const RATE_LIMIT = 15; // requests…
 const RATE_WINDOW_MS = 10 * 60 * 1000; // …per 10 minutes per client
@@ -64,16 +67,18 @@ export function parseRequest(body: unknown): { messages: ChatMessage[]; context:
   if (typeof body !== 'object' || body === null) return 'Invalid request.';
   const b = body as { messages?: unknown; context?: unknown };
   if (!Array.isArray(b.messages) || b.messages.length === 0) return 'No question was sent.';
-  if (b.messages.length > MAX_MESSAGES) return 'This conversation is too long — start a new one.';
-  const messages: ChatMessage[] = [];
-  for (const m of b.messages) {
+  let messages: ChatMessage[] = [];
+  for (const m of b.messages.slice(-MAX_MESSAGES)) {
     const role = (m as ChatMessage)?.role;
     const content = (m as ChatMessage)?.content;
     if ((role !== 'user' && role !== 'assistant') || typeof content !== 'string' || !content.trim()) return 'Invalid message.';
-    if (content.length > MAX_MESSAGE_CHARS) return `Please keep questions under ${MAX_MESSAGE_CHARS} characters.`;
-    messages.push({ role, content });
+    if (role === 'user' && content.length > MAX_MESSAGE_CHARS) return `Please keep questions under ${MAX_MESSAGE_CHARS} characters.`;
+    // Earlier tutor replies are often long; shorten them rather than rejecting the follow-up question.
+    messages.push({ role, content: role === 'assistant' ? content.slice(0, MAX_REPLY_CHARS) : content });
   }
   if (messages[messages.length - 1].role !== 'user') return 'The last message must be a question.';
+  // Keep the newest exchanges within a total budget; the latest question always stays.
+  while (messages.length > 1 && messages.reduce((n, m) => n + m.content.length, 0) > MAX_HISTORY_CHARS) messages = messages.slice(1);
   const context = typeof b.context === 'string' ? b.context.slice(0, MAX_CONTEXT_CHARS) : '';
   return { messages, context };
 }

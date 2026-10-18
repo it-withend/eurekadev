@@ -47,7 +47,7 @@ function TrialDetail({
       <h3 className="block-title">
         Trial {trial.number}
         <span className="tag">
-          {ORIGIN_TEXT(trial)} · {durationOf(trial.recording).toFixed(1)} s ·{' '}
+          {ORIGIN_TEXT(trial)}, {durationOf(trial.recording).toFixed(1)} s,{' '}
           {/* Show what the hardware delivered, not the rate we resampled to. */}
           {Math.round(trial.recording.meta?.eventRate ?? trial.recording.sampleRate)} Hz
           {trial.recording.sensor === 'motion' ? ' sensor' : ' audio'}

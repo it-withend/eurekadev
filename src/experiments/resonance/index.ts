@@ -9,6 +9,7 @@ export const resonance: ExperimentDefinition = {
   tagline: 'Blow across a tube, let the microphone hear its note, compute the speed of sound.',
   subject: 'Waves & Sound',
   icon: '🎶',
+  glyph: 'spectrum',
   sensor: 'audio',
   durationSec: 4,
   capturePrompts: {

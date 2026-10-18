@@ -4,25 +4,33 @@ import { href } from '../router';
 import { startTour, Tour } from '../tour/Tour';
 import { CATALOG_TOUR } from '../tour/tours';
 import { importExperimentFile } from './CreatePage';
+import { HeroTrace } from '../components/HeroTrace';
+import { SignalGlyph } from '../components/SignalGlyph';
 
-const SENSOR_LABEL = { motion: '📱 Motion sensors', audio: '🎤 Microphone' } as const;
+const SENSOR_LABEL = { motion: 'Motion sensors', audio: 'Microphone' } as const;
 
 function Card({ e }: { e: ExperimentDefinition }) {
   return (
     <a className={`card${e.custom ? ' custom' : ''}`} href={href({ page: 'experiment', id: e.id })}>
-      <span className="card-top">
-        <span className="card-icon" aria-hidden="true">
-          {e.icon ?? '🧪'}
+      {e.glyph && (
+        <span className="card-signal">
+          <SignalGlyph glyph={e.glyph} />
         </span>
-        <span className="card-subject">{e.subject}</span>
-      </span>
-      <h3>{e.title}</h3>
-      <p>{e.tagline}</p>
-      <code className="card-formula">{e.theory.formula}</code>
-      <span className="card-badges">
-        <span className="badge">{SENSOR_LABEL[e.sensor]}</span>
-        <span className="badge">⏱ {e.durationSec} s</span>
-        {e.virtual && <span className="badge virtual">🖥 Virtual lab</span>}
+      )}
+      <span className="card-body">
+        <span className="card-top">
+          <span className="card-icon" aria-hidden="true">
+            {e.icon ?? '🧪'}
+          </span>
+          <span className="card-subject">{e.subject}</span>
+        </span>
+        <h3>{e.title}</h3>
+        <p>{e.tagline}</p>
+        <span className="card-badges">
+          <span className="badge">{SENSOR_LABEL[e.sensor]}</span>
+          <span className="badge">{e.durationSec} s</span>
+          {e.virtual && <span className="badge virtual">Virtual lab too</span>}
+        </span>
       </span>
     </a>
   );
@@ -77,51 +85,57 @@ export function CatalogPage({ builtIn, custom }: { builtIn: readonly ExperimentD
     <>
       <Tour id="catalog" steps={CATALOG_TOUR} />
       <section className="hero">
-        <p className="eyebrow">A physics lab that fits in every pocket</p>
-        <h1>
-          Your phone already has a lab’s worth of sensors.
-          <br />
-          <em>PocketLab turns them into real experiments.</em>
-        </h1>
-        <p className="lede">
-          Measure gravity, the speed of sound and circular motion with nothing but a phone and household items — or design
-          your own experiment. No equipment, no install, no account.
-        </p>
-        <div className="hero-actions">
-          <button className="primary" onClick={() => startTour('catalog')}>
-            Show me how it works
+        <div className="hero-copy">
+          <h1>Your phone is a physics lab.</h1>
+          <p className="lede">
+            Its motion sensors and microphone are precise enough for real experiments. Hang it on a string, spin it on a chair,
+            let it listen to a glass — PocketLab records the data, does the maths and explains the result.
+          </p>
+          <div className="hero-actions">
+            <a className="button primary" href="#experiments" onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('experiments')?.scrollIntoView({ behavior: 'smooth' });
+            }}>
+              Choose an experiment
+            </a>
+            <a className="button" href={href({ page: 'experiment', id: 'pendulum', demo: true })}>
+              See a finished example
+            </a>
+          </div>
+          <button className="link tour-link" onClick={() => startTour('catalog')}>
+            New here? Take the 30-second tour
           </button>
-          <a className="button" href={href({ page: 'experiment', id: 'pendulum', demo: true })}>
-            See a finished example (no phone needed)
-          </a>
-          <a className="button" href={href({ page: 'sensors' })}>
-            Check my phone’s sensors
-          </a>
         </div>
+        <HeroTrace />
       </section>
 
-      <ol className="how">
+      <ol className="how" aria-label="How it works">
         <li>
-          <strong>
-            <span className="step-no">1</span>Pick an experiment
-          </strong>
-          <p>Each one tells you what to gather and exactly what to do.</p>
+          <span className="step-no">1</span>
+          <div>
+            <strong>Pick an experiment</strong>
+            <p>Each one lists what to gather and exactly what to do.</p>
+          </div>
         </li>
         <li>
-          <strong>
-            <span className="step-no">2</span>Measure with your phone
-          </strong>
-          <p>Press Start and follow the beeps. The phone records its sensors.</p>
+          <span className="step-no">2</span>
+          <div>
+            <strong>Measure — for real or virtually</strong>
+            <p>Follow the beeps with your phone, or practise in the simulation.</p>
+          </div>
         </li>
         <li>
-          <strong>
-            <span className="step-no">3</span>Understand the result
-          </strong>
-          <p>See your value, how precise it is, and every step of the maths.</p>
+          <span className="step-no">3</span>
+          <div>
+            <strong>Understand the result</strong>
+            <p>In simple words or with formulas — and an AI tutor for questions.</p>
+          </div>
         </li>
       </ol>
 
-      <h2 className="section-title">Experiments · {builtIn.length}</h2>
+      <h2 className="section-title" id="experiments">
+        {builtIn.length} experiments
+      </h2>
       <Library experiments={builtIn} />
 
       <h2 className="section-title">Your experiments</h2>
@@ -160,12 +174,6 @@ export function CatalogPage({ builtIn, custom }: { builtIn: readonly ExperimentD
         </div>
       </section>
 
-      <section className="note">
-        <p>
-          <strong>On a laptop?</strong> Every experiment has sample data: open one and press <em>Try sample data</em> to see
-          the full analysis without a phone.
-        </p>
-      </section>
     </>
   );
 }

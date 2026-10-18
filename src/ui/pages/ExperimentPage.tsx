@@ -11,7 +11,7 @@ import { TutorChat } from '../components/TutorChat';
 import { tutorContext } from '../tutor';
 import { ResultsSection } from '../components/ResultsSection';
 import { Worksheet } from '../components/Worksheet';
-import { StepBar, StepHeading } from '../components/Steps';
+import { StepBar, StepHeading, StepNav, type StepId } from '../components/Steps';
 import { href } from '../router';
 import { Tour } from '../tour/Tour';
 import { EXPERIMENT_TOUR } from '../tour/tours';
@@ -29,13 +29,17 @@ export function ExperimentPage({ def, demo = false }: { def: ExperimentDefinitio
   const [mode, setMode] = useState<'real' | 'virtual'>(() =>
     def.virtual && !window.matchMedia?.('(pointer: coarse)').matches ? 'virtual' : 'real',
   );
-  const resultsRef = useRef<HTMLDivElement>(null);
+  const [step, setStep] = useState<StepId>(() => (demo ? 'step-results' : 'step-setup'));
   const [tutorOpen, setTutorOpen] = useState(false);
   const [tutorQuestion, setTutorQuestion] = useState<string | null>(null);
   const trials = useTrials(def);
 
-  const reveal = () =>
-    requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  const go = (next: StepId) => {
+    setStep(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  // A new result is the reward for the work: show it right away.
+  const reveal = () => go('step-results');
   const accept = (rec: Recording, origin: TrialOrigin) => {
     setLoadError(null);
     trials.add(rec, origin);
@@ -75,49 +79,46 @@ export function ExperimentPage({ def, demo = false }: { def: ExperimentDefinitio
     }
   };
 
+  const hidden = (id: StepId) => (step === id ? '' : ' step-hidden');
+
   return (
     <article className="experiment">
       <CaptureOverlay def={def} state={state} live={live} onCancel={cancel} />
       <Tour id="experiment" steps={EXPERIMENT_TOUR} autoStart={!demo} />
       {demo && (
         <p className="demo-banner no-print">
-          You are looking at a finished example with simulated sample data. Scroll down to see the results, or{' '}
-          <a href={href({ page: 'experiment', id: def.id })}>measure it yourself</a>.
+          This is a finished example with simulated sample data.{' '}
+          <a href={href({ page: 'experiment', id: def.id })}>Measure it yourself</a>
         </p>
       )}
 
-      <a className="back no-print" href={href({ page: 'catalog' })}>
-        ← All experiments
-      </a>
       <header className="exp-header">
-        <p className="eyebrow">{def.subject}</p>
-        <h1>{def.title}</h1>
+        <a className="back no-print" href={href({ page: 'catalog' })}>
+          All experiments
+        </a>
+        <div className="exp-title">
+          <span className="exp-icon" aria-hidden="true">
+            {def.icon ?? '🧪'}
+          </span>
+          <div>
+            <p className="eyebrow">{def.subject}</p>
+            <h1>{def.title}</h1>
+          </div>
+        </div>
         <p className="lede">{def.tagline}</p>
         {def.custom && (
           <a className="button no-print" href={href({ page: 'create', id: def.id })}>
-            ✎ Edit this experiment
+            Edit this experiment
           </a>
         )}
-        <p className="print-only report-meta">PocketLab lab report · printed {new Date().toLocaleDateString()}</p>
+        <p className="print-only report-meta">PocketLab lab report, printed {new Date().toLocaleDateString()}</p>
       </header>
 
-      {def.virtual && (
-        <div className="mode-switch no-print" role="tablist" aria-label="Lab mode" data-tour="mode">
-          <button role="tab" aria-selected={mode === 'real'} className={mode === 'real' ? 'on' : ''} onClick={() => setMode('real')}>
-            📱 Real lab
-            <small>measure with your phone’s sensors</small>
-          </button>
-          <button role="tab" aria-selected={mode === 'virtual'} className={mode === 'virtual' ? 'on' : ''} onClick={() => setMode('virtual')}>
-            🖥 Virtual lab
-            <small>practise with a simulation</small>
-          </button>
-        </div>
-      )}
-      <StepBar current={trials.trials.length ? 'step-results' : 'step-setup'} reached={trials.trials.length ? 'step-results' : 'step-setup'} />
+      <StepBar current={step} onSelect={go} count={trials.trials.length} />
 
-      <div className="exp-grid">
-        <section className="panel guide" id="step-setup" data-tour="setup">
-          <StepHeading id="step-setup" />
+      <section className={`step-page setup-page${hidden('step-setup')}`} id="step-setup" data-tour="setup">
+        <div className="panel guide">
+          <StepHeading id="step-setup">What you need and what to do</StepHeading>
           {def.illustration && <div className="illustration" dangerouslySetInnerHTML={{ __html: def.illustration }} />}
           <h3>You need</h3>
           <ul>
@@ -131,56 +132,86 @@ export function ExperimentPage({ def, demo = false }: { def: ExperimentDefinitio
               <li key={s}>{s}</li>
             ))}
           </ol>
-        </section>
+        </div>
+        <div className="panel physics">
+          <h2>The physics behind it</h2>
+          <p>{def.theory.summary}</p>
+          <code className="formula">{def.theory.formula}</code>
+          {def.takeaways && def.takeaways.length > 0 && (
+            <>
+              <h3>You will find out that</h3>
+              <ul>
+                {def.takeaways.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      </section>
 
+      <section className={`step-page${hidden('step-measure')}`}>
+        {def.virtual && (
+          <div className="mode-switch no-print" role="tablist" aria-label="Lab mode" data-tour="mode">
+            <button role="tab" aria-selected={mode === 'real'} className={mode === 'real' ? 'on' : ''} onClick={() => setMode('real')}>
+              📱 Real lab
+              <small>Measure with your phone’s sensors</small>
+            </button>
+            <button role="tab" aria-selected={mode === 'virtual'} className={mode === 'virtual' ? 'on' : ''} onClick={() => setMode('virtual')}>
+              🖥 Virtual lab
+              <small>Practise with a simulation</small>
+            </button>
+          </div>
+        )}
         {mode === 'virtual' && def.virtual ? (
           <VirtualPanel def={def} params={params} onParamsChange={setParams} onResult={(rec) => accept(rec, 'virtual')} />
         ) : (
-        <MeasurePanel
-          def={def}
-          params={params}
-          onParamsChange={setParams}
-          capture={state}
-          trialCount={trials.trials.length}
-          onStart={() => start(params)}
-          onLoadSamples={loadSamples}
-          onLoadFile={loadFile}
-          loadError={loadError}
-        />
+          <MeasurePanel
+            def={def}
+            params={params}
+            onParamsChange={setParams}
+            capture={state}
+            trialCount={trials.trials.length}
+            onStart={() => start(params)}
+            onLoadSamples={loadSamples}
+            onLoadFile={loadFile}
+            loadError={loadError}
+          />
         )}
-      </div>
-
-      <details className="panel physics">
-        <summary>
-          <h2>The physics behind it</h2>
-        </summary>
-        <p>{def.theory.summary}</p>
-        <code className="formula">{def.theory.formula}</code>
-      </details>
-      <section className="print-only">
-        <h2>Theory</h2>
-        <p>{def.theory.summary}</p>
-        <code className="formula">{def.theory.formula}</code>
       </section>
 
-      <div ref={resultsRef} className="results-anchor" id="step-results">
-        <ResultsSection
-          def={def}
-          trials={trials.trials}
-          selected={trials.selected}
-          summary={trials.summary}
-          onSelect={trials.select}
-          onRemove={trials.remove}
-          onClear={trials.clear}
-          onParamsChange={trials.updateParams}
-          onAsk={() => {
-            setTutorQuestion('Explain my result in simple words');
-            setTutorOpen(true);
-          }}
-        />
-      </div>
+      <section className={`step-page${hidden('step-results')}`} id="step-results">
+        {trials.trials.length === 0 ? (
+          <div className="empty no-print">
+            <h2>No results yet</h2>
+            <p>Record a trial in the Measure step — with your phone, in the virtual lab, or from sample data.</p>
+            <button className="primary" onClick={() => go('step-measure')}>
+              Go to Measure
+            </button>
+          </div>
+        ) : (
+          <ResultsSection
+            def={def}
+            trials={trials.trials}
+            selected={trials.selected}
+            summary={trials.summary}
+            onSelect={trials.select}
+            onRemove={trials.remove}
+            onClear={trials.clear}
+            onParamsChange={trials.updateParams}
+            onAsk={() => {
+              setTutorQuestion('Explain my result in simple words');
+              setTutorOpen(true);
+            }}
+          />
+        )}
+      </section>
 
-      <Worksheet def={def} />
+      <section className={`step-page${hidden('step-report')}`}>
+        <Worksheet def={def} />
+      </section>
+
+      <StepNav current={step} onSelect={go} />
 
       {!tutorOpen && (
         <button className="tutor-fab no-print" data-tour="tutor" onClick={() => setTutorOpen(true)}>

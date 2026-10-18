@@ -9,6 +9,7 @@ export const pendulum: ExperimentDefinition = {
   tagline: 'Swing your phone on a string and measure g to within 1 %.',
   subject: 'Mechanics',
   icon: '🕰️',
+  glyph: 'swing',
   sensor: 'motion',
   durationSec: 25,
   countdownSec: 5,

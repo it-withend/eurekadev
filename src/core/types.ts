@@ -172,6 +172,8 @@ export interface ExperimentDefinition {
   subject: string;
   /** Emoji shown on the catalogue card. */
   icon?: string;
+  /** Shape of the signal this experiment records, drawn on its catalogue card. */
+  glyph?: 'swing' | 'bounce' | 'spectrum' | 'spin' | 'jolt' | 'tilt' | 'level';
   sensor: SensorKind;
   /** Capture length in seconds. */
   durationSec: number;
