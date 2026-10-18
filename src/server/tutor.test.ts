@@ -64,7 +64,7 @@ describe('AI tutor back end', () => {
     const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
       if (url === GROQ_MODELS_URL) {
         calls.push('models');
-        return new Response(JSON.stringify({ data: [{ id: 'whisper-large-v3' }, { id: 'llama-guard-4' }, { id: 'llama-4-scout-17b' }, { id: 'openai/gpt-oss-120b' }] }));
+        return new Response(JSON.stringify({ data: [{ id: 'whisper-large-v3' }, { id: 'llama-guard-4' }, { id: 'llama-4-scout-17b' }, { id: DEFAULT_MODEL }] }));
       }
       const model = JSON.parse(init!.body as string).model;
       calls.push(model);
@@ -91,6 +91,8 @@ describe('AI tutor back end', () => {
 
   it('chooses a chat model, never speech or moderation ones', () => {
     expect(chooseModel(['whisper-large-v3', 'llama-guard-4', 'llama-3.3-70b-versatile'])).toBe('llama-3.3-70b-versatile');
+    // The model that just failed is never chosen again.
+    expect(chooseModel(['openai/gpt-oss-120b', 'llama-4-scout-17b'], 'llama-4-scout-17b')).toBe('openai/gpt-oss-120b');
     expect(chooseModel(['whisper-large-v3', 'gemma2-9b-it'])).toBe('gemma2-9b-it');
     expect(chooseModel(['whisper-large-v3'])).toBeNull();
   });

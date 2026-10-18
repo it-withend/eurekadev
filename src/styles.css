@@ -451,7 +451,11 @@ button.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 4
 .tutor-intro p { margin: 0 0 10px; color: var(--ink-2); font-size: 0.92rem; }
 .bubble { margin: 0; padding: 9px 12px; border-radius: 12px; max-width: 88%; white-space: pre-wrap; font-size: 0.92rem; line-height: 1.5; }
 .bubble.user { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
-.bubble.assistant { align-self: flex-start; background: var(--paper); border-bottom-left-radius: 4px; }
+.bubble.assistant { align-self: flex-start; background: var(--paper); border-bottom-left-radius: 4px; white-space: normal; }
+.bubble.assistant p { margin: 0 0 6px; }
+.bubble.assistant p:last-child { margin-bottom: 0; }
+.bubble.assistant ul, .bubble.assistant ol { margin: 4px 0 6px; padding-left: 1.2em; }
+.bubble.assistant code { background: var(--surface); padding: 0 4px; border-radius: 4px; }
 .bubble.typing { color: var(--ink-2); font-style: italic; }
 .tutor-error { color: var(--bad); font-size: 0.88rem; margin: 0; }
 .tutor-form { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--rule); }

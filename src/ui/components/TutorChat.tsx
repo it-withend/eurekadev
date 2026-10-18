@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { SUGGESTIONS } from '../tutor';
+import { Markdown } from '../markdown';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -88,11 +89,17 @@ export function TutorChat({
             </div>
           </div>
         )}
-        {messages.map((m, i) => (
-          <p key={i} className={`bubble ${m.role}`}>
-            {m.content}
-          </p>
-        ))}
+        {messages.map((m, i) =>
+          m.role === 'assistant' ? (
+            <div key={i} className="bubble assistant">
+              <Markdown text={m.content} />
+            </div>
+          ) : (
+            <p key={i} className="bubble user">
+              {m.content}
+            </p>
+          ),
+        )}
         {busy && <p className="bubble assistant typing">Thinking…</p>}
         {error && (
           <p className="tutor-error" role="alert">

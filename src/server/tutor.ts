@@ -8,7 +8,8 @@
 
 export const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 export const GROQ_MODELS_URL = 'https://api.groq.com/openai/v1/models';
-export const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+/** Groq retired llama-3.3-70b-versatile in 2026; if this one goes too, handleChat finds a replacement. */
+export const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
 const MAX_MESSAGES = 12;
 const MAX_MESSAGE_CHARS = 1000;
