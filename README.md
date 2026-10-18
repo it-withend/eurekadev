@@ -85,9 +85,17 @@ Clone the repo, run it, get the same numbers.
 
 | Experiment | Mean error (all platforms) | Worst error | Truth within ±2σ |
 |---|---|---|---|
-| Pendulum → g | 0.17–0.25 % | 1.56 % | 100 % |
+| Pendulum → g | 0.10–0.12 % | 0.45 % | 100 % |
 | Spinning chair → r | 0.22–0.47 % | 1.58 % | 100 % |
-| Singing tube → v | 0.30–0.40 % | 0.98 % | 100 % |
+| Singing tube → v | 0.30–0.37 % | 0.96 % | 100 % |
+
+**No false alarms.** 360 correctly performed experiments with the imperfections a real phone and a
+real student bring (trembling hand at release, phone twisting on the string, sensor bias, uneven
+floor, breath noise, estimated room temperature, tape-measure error…): **359 told "agrees"**, 1 told
+"close" (a 3.8 % deviation from an unusual glass rim), none told "error" or "far off". This check is
+part of the test suite, so a change that causes false alarms fails CI. It was added after real-phone
+tests, and it caught two real bugs: breath noise could make the tube analysis lock onto half the
+true frequency, and linear detrending biased pendulum periods by up to 0.25 %.
 
 "Truth within ±2σ" checks that PocketLab's uncertainty is honest: the true value lies inside
 the reported range. Real-device results are tracked in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md):
@@ -116,8 +124,9 @@ Requires Node.js 20 or newer.
 npm install
 npm run dev          # http://localhost:5173 (desktop; use sample data)
 npm run dev:phone    # HTTPS on your LAN; open the printed https://<ip>:5173 on a phone
-npm test             # 75 unit tests: DSP, physics ground truth, platform matrix, formulas, builder
-npm run validate     # accuracy report over simulated phone platforms -> docs/VALIDATION.md
+npm test             # 82 unit tests: DSP, physics ground truth, platform matrix, no-false-alarm check, formulas
+npm run validate     # accuracy + false-alarm report over simulated phones -> docs/VALIDATION.md
+npm run stress       # 40 realistic correct experiments per case, prints any non-"agrees" verdict
 npm run e2e          # 12 Playwright end-to-end tests, desktop + phone viewport
 npm run lint         # ESLint, including architecture layer rules
 npm run build        # static site in dist/

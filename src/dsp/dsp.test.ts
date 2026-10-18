@@ -10,6 +10,7 @@ import {
   mean,
   median,
   movingAverage,
+  removeMean,
   powerSpectrum,
   resampleUniform,
   std,
@@ -106,6 +107,20 @@ describe('period', () => {
     const p = estimatePeriod(x, sr)!;
     expect(p.cycles).toBeGreaterThanOrEqual(13);
     expect(Math.abs(p.period - T)).toBeLessThan(0.002);
+  });
+});
+
+describe('period timing regression', () => {
+  it('filtering keeps the period exact for any phase and non-whole number of cycles', () => {
+    // detrend() used to tilt the signal and bias the period by up to 0.25 %.
+    const sr = 400;
+    for (const T of [0.9, 1.82, 2.27, 2.5]) {
+      for (const phase of [0, 0.7, 1.5, 2.3]) {
+        const x = Float64Array.from({ length: 25 * sr }, (_, i) => Math.cos((2 * Math.PI * i) / sr / T + phase) + 0.02);
+        const p = estimatePeriod(lowPass(removeMean(x), sr, 3).slice(2 * sr, x.length - sr), sr)!;
+        expect(Math.abs(p.period / T - 1)).toBeLessThan(1e-4);
+      }
+    }
   });
 });
 

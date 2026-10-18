@@ -14,21 +14,44 @@ it has; 100 % means the uncertainty is cautious.
 
 | Experiment | Simulated platform | Success | Mean error | Worst error | Truth within ±2σ |
 |---|---|---|---|---|---|
-| Measure Gravity with a Pendulum | Android Chrome, fast sensor (200 Hz) | 20/20 | 0.18 % | 0.52 % | 100 % |
+| Measure Gravity with a Pendulum | Android Chrome, fast sensor (200 Hz) | 20/20 | 0.10 % | 0.26 % | 100 % |
 | Circular Motion on a Spinning Chair | Android Chrome, fast sensor (200 Hz) | 20/20 | 0.22 % | 1.18 % | 100 % |
-| Measure Gravity with a Pendulum | Android Chrome, throttled (60 Hz, drops) | 20/20 | 0.18 % | 0.52 % | 100 % |
+| Measure Gravity with a Pendulum | Android Chrome, throttled (60 Hz, drops) | 20/20 | 0.11 % | 0.23 % | 100 % |
 | Circular Motion on a Spinning Chair | Android Chrome, throttled (60 Hz, drops) | 20/20 | 0.29 % | 1.37 % | 100 % |
-| Measure Gravity with a Pendulum | iPhone Safari (60 Hz, inverted accel, relabelled gyro) | 20/20 | 0.18 % | 0.51 % | 100 % |
+| Measure Gravity with a Pendulum | iPhone Safari (60 Hz, inverted accel, relabelled gyro) | 20/20 | 0.12 % | 0.24 % | 100 % |
 | Circular Motion on a Spinning Chair | iPhone Safari (60 Hz, inverted accel, relabelled gyro) | 20/20 | 0.34 % | 1.54 % | 100 % |
-| Measure Gravity with a Pendulum | Firefox Android (50 Hz, jittery, batched) | 20/20 | 0.17 % | 0.50 % | 100 % |
+| Measure Gravity with a Pendulum | Firefox Android (50 Hz, jittery, batched) | 20/20 | 0.11 % | 0.24 % | 100 % |
 | Circular Motion on a Spinning Chair | Firefox Android (50 Hz, jittery, batched) | 20/20 | 0.24 % | 0.68 % | 100 % |
-| Measure Gravity with a Pendulum | Budget phone without gyroscope (50 Hz) | 20/20 | 0.25 % | 1.56 % | 100 % |
+| Measure Gravity with a Pendulum | Budget phone without gyroscope (50 Hz) | 20/20 | 0.11 % | 0.45 % | 100 % |
 | Circular Motion on a Spinning Chair | Budget phone without gyroscope (50 Hz) | rejected with advice | — | — | — |
-| Measure Gravity with a Pendulum | Old phone, slow sensor (25 Hz) | 20/20 | 0.17 % | 0.51 % | 100 % |
+| Measure Gravity with a Pendulum | Old phone, slow sensor (25 Hz) | 20/20 | 0.11 % | 0.26 % | 100 % |
 | Circular Motion on a Spinning Chair | Old phone, slow sensor (25 Hz) | 20/20 | 0.47 % | 1.58 % | 100 % |
-| Speed of Sound from a Singing Tube | Microphone at 48 kHz | 20/20 | 0.31 % | 0.81 % | 100 % |
+| Speed of Sound from a Singing Tube | Microphone at 48 kHz | 20/20 | 0.34 % | 0.96 % | 100 % |
 | Speed of Sound from a Singing Tube | Microphone at 44.1 kHz | 20/20 | 0.30 % | 0.70 % | 100 % |
-| Speed of Sound from a Singing Tube | Microphone at 16 kHz | 20/20 | 0.40 % | 0.98 % | 100 % |
+| Speed of Sound from a Singing Tube | Microphone at 16 kHz | 20/20 | 0.37 % | 0.95 % | 100 % |
+
+## Does a careful student ever get a false error?
+
+60 correctly performed experiments per row, each with the imperfections that
+happen anyway on a real phone (src/testing/realistic.ts): a trembling hand before release,
+the phone hanging turned and twisting on the string, sensor bias, the phone being a 15 cm
+object, tape-measure error; an uneven floor and seat vibration under the chair, the
+accelerometer chip off the phone's centre; breath noise, mains hum, silence before blowing,
+real rim shapes and an estimated room temperature for the tube. Delivered through simulated
+iPhone and Android sensor streams. Counts are the verdict the student would see.
+
+| Correct experiment, realistic conditions | Agrees | Close | Far off | Too uncertain | Analysis failed |
+|---|---|---|---|---|---|
+| Pendulum · iPhone | 60 | 0 | 0 | 0 | 0 |
+| Pendulum · Android 60 Hz | 60 | 0 | 0 | 0 | 0 |
+| Chair · iPhone | 60 | 0 | 0 | 0 | 0 |
+| Chair · Android 60 Hz | 60 | 0 | 0 | 0 | 0 |
+| Tube · 48 kHz | 59 | 1 | 0 | 0 | 0 |
+| Tube · 44.1 kHz | 60 | 0 | 0 | 0 | 0 |
+
+"Close" is not an error message: it tells the student the result is within 5 % but outside
+the estimated uncertainty, and points to the sources of error. This check runs in the test
+suite (src/experiments/realistic.test.ts) so a change that causes false alarms fails CI.
 
 ## What these numbers do not say
 

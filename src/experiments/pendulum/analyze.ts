@@ -1,6 +1,8 @@
 import {
+  applyBiquad,
+  bandPassCoefficients,
   bandPower,
-  detrend,
+  removeMean,
   dominantFrequency,
   estimatePeriod,
   linearRegression,
@@ -15,6 +17,13 @@ import type { AnalysisResult, ParamSpec, Recording, TrialData } from '@core/type
 import { ACCEL, GYRO, dominantChannel, fmt, line, points, timeAxis } from '../shared';
 
 export const STANDARD_GRAVITY = 9.80665;
+/**
+ * Seconds ignored at the start: the student lets go a moment after the beep,
+ * and the jump from "held still" to "swinging" disturbs the filters.
+ */
+const RELEASE_SKIP = 2;
+/** Typical phone length, m. Only enters through a small physical-pendulum correction. */
+const PHONE_LENGTH = 0.15;
 /** Local g ranges from ≈ 9.78 (equator) to 9.83 m/s² (poles); we do not know where the student is. */
 const LOCAL_G_SPREAD = 0.025;
 
@@ -37,11 +46,11 @@ export const pendulumParams: ParamSpec[] = [
     label: 'Length uncertainty ΔL',
     unit: 'cm',
     scale: 0.01,
-    default: 0.5,
+    default: 1,
     min: 0,
     max: 10,
     step: 0.1,
-    help: 'How precisely you could measure L. 0.5 cm is typical for a tape measure.',
+    help: 'How precisely you know L. Finding the centre of a hanging phone is hard: ±1 cm is realistic.',
   },
 ];
 
@@ -62,7 +71,7 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
   const warnings: string[] = [];
 
   const hasGyro = dominantChannel(rec, GYRO).variance > 1e-4;
-  if (!hasGyro) warnings.push('No gyroscope signal: using the accelerometer, so the large-swing correction is skipped.');
+  if (!hasGyro) warnings.push('No gyroscope signal: the swing is timed with the accelerometer instead (slightly less precise).');
   // String tension (seen by the accelerometer) peaks at both ends of the swing:
   // it oscillates twice per period, so its period is T/2.
   const periodFactor = hasGyro ? 1 : 2;
@@ -83,17 +92,17 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
   let theta0 = 0;
   let correction = 1;
   if (hasGyro) {
-    // Robust peak angular velocity: 95th percentile of |ω| avoids noise spikes.
-    const abs = Array.from(signal, Math.abs).sort((a, b) => a - b);
-    const omegaMax = abs[Math.floor(abs.length * 0.95)];
-    theta0 = (omegaMax * T) / (2 * Math.PI);
+    theta0 = amplitudeFromGyro(rec, 1 / T);
   } else {
     theta0 = amplitudeFromTension(rec);
   }
   correction = 1 + theta0 ** 2 / 16 + (11 * theta0 ** 4) / 3072;
   if (theta0 > 0.6) warnings.push(`Large swing (≈${fmt((theta0 * 180) / Math.PI, 0)}°). Smaller swings (< 15°) are more accurate.`);
   const T0 = T / correction;
-  const g = (4 * Math.PI ** 2 * L) / T0 ** 2;
+  // The phone is an extended object, not a point mass: a physical pendulum
+  // swings like a point pendulum of length L + k²/L (k² = ℓ²/12 for a phone of length ℓ).
+  const Leq = L + PHONE_LENGTH ** 2 / 12 / L;
+  const g = (4 * Math.PI ** 2 * Leq) / T0 ** 2;
   const relErr = Math.sqrt((dL / L) ** 2 + ((2 * dT) / T) ** 2);
   const dg = g * relErr;
 
@@ -156,14 +165,44 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
         ? `Found ${est.cycles} full swings on the ${source.name} axis; mean period T = ${fmt(T, 4)} ± ${fmt(dT, 4)} s.`
         : `Found ${est.cycles} tension cycles on ${source.name}; tension peaks twice per swing, so T = 2 × ${fmt(est.period, 4)} = ${fmt(T, 4)} ± ${fmt(dT, 4)} s.`,
       hasGyro
-        ? `Peak angular velocity gives amplitude θ₀ ≈ ${fmt((theta0 * 180) / Math.PI, 1)}°, so T₀ = T / (1 + θ₀²/16 + …) = ${fmt(T0, 4)} s.`
+        ? `The gyroscope's swing signal (all axes, so it does not matter how the phone hangs) gives an average amplitude θ₀ ≈ ${fmt((theta0 * 180) / Math.PI, 1)}°, so T₀ = T / (1 + θ₀²/16 + …) = ${fmt(T0, 4)} s.`
         : `The string tension swings between g·cos θ₀ and g·(3 − 2 cos θ₀), so its range gives the amplitude θ₀ ≈ ${fmt((theta0 * 180) / Math.PI, 1)}° and T₀ = T / (1 + θ₀²/16 + …) = ${fmt(T0, 4)} s.`,
-      `g = 4π²L / T₀² = 4π² × ${fmt(L, 3)} / ${fmt(T0, 4)}² = ${fmt(g, 3)} m/s².`,
+      `The phone is ${PHONE_LENGTH * 100} cm long, not a point, so it swings like a pendulum of length L + ℓ²/(12L) = ${fmt(Leq, 4)} m.`,
+      `g = 4π²L / T₀² = 4π² × ${fmt(Leq, 4)} / ${fmt(T0, 4)}² = ${fmt(g, 3)} m/s².`,
       `Δg/g = √((ΔL/L)² + (2ΔT/T)²) = ${fmt(relErr * 100, 2)} %, so Δg = ${fmt(dg, 3)} m/s².`,
     ],
     warnings,
-    values: { L, T, T0, dT, g },
+    values: { L: Leq, T, T0, dT, g },
   };
+}
+
+/**
+ * Effective swing amplitude from the gyroscope, robust to how the phone hangs:
+ * each axis is band-passed around the swing frequency (removing twist on the
+ * string and sensor bias), and the axes are combined, so it does not matter
+ * which way the phone faces. Uses the mean of ω² over the whole recording —
+ * the period is averaged over a decaying swing, so its correction must be too:
+ * for a sinusoid, ⟨θ²⟩ = 2⟨ω²⟩/(2πf)².
+ */
+function amplitudeFromGyro(rec: Recording, f: number): number {
+  const sr = rec.sampleRate;
+  const skip = Math.min(Math.round(RELEASE_SKIP * sr), Math.floor((rec.channels.gx?.length ?? 0) / 4));
+  const c = bandPassCoefficients(sr, f, 2);
+  let sumSq = 0;
+  let count = 0;
+  for (const name of GYRO) {
+    const data = rec.channels[name];
+    if (!data) continue;
+    const x = removeMean(data.slice(skip));
+    const forward = applyBiquad(x, c).reverse();
+    const y = applyBiquad(forward, c).reverse(); // zero-phase, unit gain at f
+    let s = 0;
+    for (let i = 0; i < y.length; i++) s += y[i] * y[i];
+    sumSq += s / y.length;
+    count = y.length;
+  }
+  if (!count) return 0;
+  return Math.sqrt(2 * sumSq) / (2 * Math.PI * f);
 }
 
 /**
@@ -176,7 +215,7 @@ function amplitudeFromTension(rec: Recording): number {
   const [ax, ay, az] = ACCEL.map((c) => rec.channels[c]);
   if (!ax || !ay || !az) return 0;
   const mag = lowPass(Float64Array.from(ax, (_, i) => Math.hypot(ax[i], ay[i], az[i])), rec.sampleRate, 4);
-  const skip = Math.min(Math.round(rec.sampleRate), Math.floor(mag.length / 4));
+  const skip = Math.min(Math.round(RELEASE_SKIP * rec.sampleRate), Math.floor(mag.length / 4));
   const sorted = Array.from(mag.subarray(skip)).sort((a, b) => a - b);
   const range = sorted[Math.floor(sorted.length * 0.98)] - sorted[Math.floor(sorted.length * 0.02)];
   const cos = 1 - range / (3 * STANDARD_GRAVITY);
@@ -196,9 +235,12 @@ function pickSwingAxis(rec: Recording, axes: readonly string[], L: number, perio
   for (const name of axes) {
     const data = rec.channels[name];
     if (!data || variance(data) < 1e-4) continue;
-    // Ignore the first second: hands releasing the phone.
-    const skip = Math.min(Math.round(sr), Math.floor(data.length / 4));
-    const signal = lowPass(detrend(data.slice(skip)), sr, 3 * periodFactor);
+    const skip = Math.min(Math.round(RELEASE_SKIP * sr), Math.floor(data.length / 4));
+    // Filter the whole recording first, then cut both ends: a filter needs a
+    // moment to settle, and its start-up transient must not land on the swings we time.
+    const tail = Math.min(Math.round(sr), Math.floor(data.length / 8));
+    // Mean removal, not detrend: a fitted line would shift the zero crossings.
+    const signal = lowPass(removeMean(data), sr, 3 * periodFactor).slice(skip, data.length - tail);
     const score = bandPower(powerSpectrum(signal, sr, nextPow2(signal.length) * 2), fExpected * 0.78, fExpected * 1.28);
     if (!best || score > best.score) best = { name, signal, score };
   }

@@ -6,7 +6,7 @@
  */
 import {
   decimate,
-  detrend,
+  removeMean,
   dominantFrequency,
   estimatePeriod,
   lowPass,
@@ -71,7 +71,7 @@ function findOscillation(rec: Recording): Oscillation | null {
   for (const name of [...GYRO, ...ACCEL]) {
     const data = rec.channels[name];
     if (!data || std(data) < (name.startsWith('g') ? 0.02 : 0.1)) continue;
-    const signal = lowPass(detrend(data), sr, 8);
+    const signal = lowPass(removeMean(data), sr, 8);
     const spec = dominantFrequency(signal, sr, { segmentSize: Math.min(signal.length, 2048), fMin: 0.1, fMax: 8 });
     if (!spec) continue;
     const score = spec.peak.prominenceDb + (name.startsWith('g') ? 3 : 0);

@@ -16,7 +16,8 @@
     "datasets": "tsx scripts/generate-demo-datasets.ts",
     "lint": "eslint .",
     "validate": "tsx scripts/validate.ts",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "stress": "tsx scripts/stress.ts"
   },
   "dependencies": {
     "react": "^18.3.1",

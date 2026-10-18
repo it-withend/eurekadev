@@ -41,9 +41,11 @@ export function synthPendulum(o: {
 }): Recording {
   const g = o.g ?? 9.81;
   const L = o.length;
+  // A 15 cm phone, not a point mass: it swings like a pendulum of length L + ℓ²/(12L).
+  const Ldyn = L + 0.15 ** 2 / 12 / L;
   const sr = o.sampleRate ?? 100;
   const n = Math.round((o.seconds ?? 25) * sr);
-  const w0 = Math.sqrt(g / L);
+  const w0 = Math.sqrt(g / Ldyn);
   const damping = w0 / (o.qualityFactor ?? 300);
   const noise = o.noise ?? 0.02;
   const r = rng(o.seed ?? 1);
@@ -54,7 +56,7 @@ export function synthPendulum(o: {
   const dt = 1 / sr;
   const sub = 10;
   const h = dt / sub;
-  const f = (t: number, w: number) => -(g / L) * Math.sin(t) - damping * w;
+  const f = (t: number, w: number) => -(g / Ldyn) * Math.sin(t) - damping * w;
   const bias = 0.01;
   for (let i = 0; i < n; i++) {
     const twist = o.twist ? o.twist.amplitude * Math.sin((2 * Math.PI * i) / sr / o.twist.period) : 0;

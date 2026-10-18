@@ -35,7 +35,18 @@ export function median(x: Signal): number {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-/** Removes the mean and any linear drift (e.g. slow gyroscope bias drift). */
+/** Subtracts the mean (e.g. a gyroscope's constant bias). */
+export function removeMean(x: Signal): Float64Array {
+  const m = mean(x);
+  return Float64Array.from(x, (v) => v - m);
+}
+
+/**
+ * Removes the mean and any linear drift. Do NOT use before timing an
+ * oscillation: over a non-whole number of cycles the fitted line is not zero,
+ * and subtracting it shifts the zero crossings progressively (up to 0.25 % in
+ * the period). Use `removeMean` there.
+ */
 export function detrend(x: Signal): Float64Array {
   const n = x.length;
   const out = new Float64Array(n);

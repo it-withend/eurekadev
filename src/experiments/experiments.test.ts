@@ -39,7 +39,9 @@ describe('pendulum', () => {
     const rec = synthPendulum({ length: 1, g: 9.81 });
     const a = expectOk(pendulum.analyze(rec)).primary.measured;
     const b = expectOk(pendulum.analyze(withParams(rec, { length: 2 }))).primary.measured;
-    expect(b / a).toBeCloseTo(2, 6);
+    // g ∝ the physical-pendulum length L + ℓ²/(12L) for a 15 cm phone.
+    const leq = (L: number) => L + 0.15 ** 2 / 12 / L;
+    expect(b / a).toBeCloseTo(leq(2) / leq(1), 6);
   });
 
   it('ignores the phone twisting on the string', () => {

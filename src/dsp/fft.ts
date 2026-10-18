@@ -150,17 +150,57 @@ export function findPeak(s: Spectrum, fMin: number, fMax: number): Peak | null {
   };
 }
 
+/**
+ * The peak that stands out most from its *local* background, rather than the
+ * loudest bin. Matters when the background is steep: breath noise is far
+ * louder at low frequencies, so the loudest bin in a window is often just the
+ * window's lower edge, not the resonance.
+ *
+ * Candidates are local maxima; each is scored by its power over the median
+ * power within ±`relWidth` of its frequency (its own few bins excluded).
+ */
+export function findProminentPeak(s: Spectrum, fMin: number, fMax: number, relWidth = 0.25): Peak | null {
+  const lo = Math.max(1, Math.ceil(fMin / s.binWidth));
+  const hi = Math.min(s.power.length - 2, Math.floor(fMax / s.binWidth));
+  if (hi <= lo) return null;
+  let best = -1;
+  let bestScore = 0;
+  for (let k = lo; k <= hi; k++) {
+    if (s.power[k] < s.power[k - 1] || s.power[k] < s.power[k + 1]) continue;
+    const a = Math.max(1, Math.floor(k * (1 - relWidth)));
+    const b = Math.min(s.power.length - 1, Math.ceil(k * (1 + relWidth)));
+    const around: number[] = [];
+    for (let j = a; j <= b; j++) if (Math.abs(j - k) > 3) around.push(s.power[j]);
+    if (around.length < 4) continue;
+    around.sort((x, y) => x - y);
+    const score = s.power[k] / (around[around.length >> 1] || 1e-300);
+    if (score > bestScore) {
+      bestScore = score;
+      best = k;
+    }
+  }
+  if (best < 0) return null;
+  const eps = 1e-300;
+  const pa = Math.log(s.power[best - 1] + eps);
+  const pb = Math.log(s.power[best] + eps);
+  const pc = Math.log(s.power[best + 1] + eps);
+  const denom = pa - 2 * pb + pc;
+  const delta = denom === 0 ? 0 : Math.max(-0.5, Math.min(0.5, (0.5 * (pa - pc)) / denom));
+  return { frequency: (best + delta) * s.binWidth, power: s.power[best], index: best, prominenceDb: 10 * Math.log10(bestScore) };
+}
+
 /** Dominant frequency with an uncertainty from the scatter across Welch segments. */
 export function dominantFrequency(
   x: Signal,
   sampleRate: number,
-  opts: { segmentSize: number; fMin: number; fMax: number },
+  opts: { segmentSize: number; fMin: number; fMax: number; mode?: 'loudest' | 'prominent' },
 ): { peak: Peak; uncertainty: number; spectrum: WelchResult } | null {
   const spectrum = welch(x, sampleRate, opts.segmentSize);
-  const peak = findPeak(spectrum, opts.fMin, opts.fMax);
+  const pick = opts.mode === 'prominent' ? findProminentPeak : findPeak;
+  const peak = pick(spectrum, opts.fMin, opts.fMax);
   if (!peak) return null;
   const perSegment = spectrum.segments
-    .map((s) => findPeak(s, opts.fMin, opts.fMax)?.frequency)
+    .map((s) => pick(s, opts.fMin, opts.fMax)?.frequency)
     .filter((f): f is number => f !== undefined && Math.abs(f - peak.frequency) < 5 * spectrum.binWidth);
   // Never claim better than a quarter bin: interpolation has its own bias.
   const uncertainty = Math.max(spectrum.binWidth / 4, standardError(perSegment));
