@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { Comparison, SuccessfulAnalysis } from '@core/types';
+import { load, save } from '../storage';
 import { agreement, explain, VERDICT_TITLE } from '../verdict';
 import { Chart } from './Chart';
 
@@ -45,7 +47,63 @@ function Headline({ c }: { c: Comparison }) {
   );
 }
 
-export function ResultView({ result }: { result: SuccessfulAnalysis }) {
+type ExplainMode = 'simple' | 'formulas';
+const EXPLAIN_KEY = 'pocketlab.explain';
+
+/** The same result explained two ways: everyday words, or the full derivation. */
+function Explanation({ result, onAsk }: { result: SuccessfulAnalysis; onAsk?: () => void }) {
+  const [mode, setMode] = useState<ExplainMode>(() => (result.story ? load<ExplainMode>(EXPLAIN_KEY, 'simple') : 'formulas'));
+  const choose = (m: ExplainMode) => {
+    setMode(m);
+    save(EXPLAIN_KEY, m);
+  };
+  const showSimple = mode === 'simple' && !!result.story;
+  return (
+    <section className="explain" aria-label="What does this result mean?">
+      <div className="explain-head">
+        <h3>What happened?</h3>
+        {result.story && (
+          <div className="segmented no-print" role="tablist" aria-label="Explanation style">
+            <button role="tab" aria-selected={showSimple} className={showSimple ? 'on' : ''} onClick={() => choose('simple')}>
+              💬 In simple words
+            </button>
+            <button role="tab" aria-selected={!showSimple} className={!showSimple ? 'on' : ''} onClick={() => choose('formulas')}>
+              ∑ With formulas
+            </button>
+          </div>
+        )}
+      </div>
+      <ol className={`steps ${showSimple ? 'story' : ''}`} role="tabpanel">
+        {(showSimple ? result.story! : result.steps).map((s) => (
+          <li key={s}>{s}</li>
+        ))}
+      </ol>
+      {/* The printed report always contains the full derivation as well. */}
+      {showSimple && (
+        <ol className="steps print-only">
+          {result.steps.map((s) => (
+            <li key={s}>{s}</li>
+          ))}
+        </ol>
+      )}
+      {onAsk && (
+        <button className="link ask-link no-print" onClick={onAsk}>
+          🤖 Still unclear? Ask the AI tutor about this result
+        </button>
+      )}
+    </section>
+  );
+}
+
+export function ResultView({
+  result,
+  takeaways,
+  onAsk,
+}: {
+  result: SuccessfulAnalysis;
+  takeaways?: string[];
+  onAsk?: () => void;
+}) {
   return (
     <div className="result">
       <Headline c={result.primary} />
@@ -58,39 +116,42 @@ export function ResultView({ result }: { result: SuccessfulAnalysis }) {
         </ul>
       )}
 
+      <Explanation result={result} onAsk={onAsk} />
+
+      {takeaways && takeaways.length > 0 && (
+        <section className="takeaways">
+          <h3>💡 Key ideas to remember</h3>
+          <ul>
+            {takeaways.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="charts">
         {result.charts.map((c) => (
           <Chart key={c.title} spec={c} />
         ))}
       </div>
 
-      <div className="two-col">
-        <section>
-          <h3>Measurements</h3>
-          <table className="measurements">
-            <tbody>
-              {result.measurements.map((m) => (
-                <tr key={m.label}>
-                  <th>{m.label}</th>
-                  <td>
-                    {f(m.value, m.digits ?? 3)}
-                    {m.uncertainty !== undefined && <span className="pm"> ± {f(m.uncertainty, m.digits ?? 3)}</span>}
-                    {m.unit && <span className="unit"> {m.unit}</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-        <section>
-          <h3>How it was calculated</h3>
-          <ol className="steps">
-            {result.steps.map((s) => (
-              <li key={s}>{s}</li>
+      <details className="numbers">
+        <summary>All the numbers</summary>
+        <table className="measurements">
+          <tbody>
+            {result.measurements.map((m) => (
+              <tr key={m.label}>
+                <th>{m.label}</th>
+                <td>
+                  {f(m.value, m.digits ?? 3)}
+                  {m.uncertainty !== undefined && <span className="pm"> ± {f(m.uncertainty, m.digits ?? 3)}</span>}
+                  {m.unit && <span className="unit"> {m.unit}</span>}
+                </td>
+              </tr>
             ))}
-          </ol>
-        </section>
-      </div>
+          </tbody>
+        </table>
+      </details>
     </div>
   );
 }

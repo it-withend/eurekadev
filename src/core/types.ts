@@ -34,6 +34,8 @@ export interface Recording {
     /** Native rate the hardware delivered, Hz (before resampling). */
     eventRate?: number;
     hasGyroscope?: boolean;
+    /** Virtual-lab knob settings (e.g. the gravity the student chose), present only for simulated runs. */
+    virtual?: Record<string, number>;
   };
 }
 
@@ -112,8 +114,13 @@ export type AnalysisResult =
       primary: Comparison;
       measurements: Measurement[];
       charts: ChartSpec[];
-      /** Human-readable derivation with the actual numbers plugged in. */
+      /** Human-readable derivation with the actual numbers plugged in ("with formulas"). */
       steps: string[];
+      /**
+       * The same result told in everyday words, without formulas, for a student
+       * who is learning ("in simple words"). Uses the student's own numbers.
+       */
+      story?: string[];
       warnings: string[];
       /** Machine-readable intermediate values (e.g. period T) for multi-trial summaries. */
       values?: Record<string, number>;
@@ -128,6 +135,32 @@ export interface TrialData {
   result: SuccessfulAnalysis;
 }
 
+/** An extra knob in the virtual lab (beyond the experiment's own parameters). */
+export interface VirtualControl {
+  id: string;
+  label: string;
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+  default: number;
+  /** Named presets, e.g. gravity on other planets. */
+  presets?: { value: number; label: string }[];
+}
+
+/**
+ * Virtual-lab mode: the experiment runs on a physics simulation instead of the
+ * phone's sensors. The simulated recording goes through the very same analysis,
+ * so students can practise the whole method before (or without) the real thing.
+ */
+export interface VirtualLab {
+  /** Which animated scene the UI shows. */
+  scene: 'pendulum' | 'tube' | 'chair';
+  controls: VirtualControl[];
+  /** Params are SI (as in recordings); knobs are in the controls' own units. */
+  simulate: (params: Record<string, number>, knobs: Record<string, number>, seed: number) => Recording;
+}
+
 /**
  * The plugin contract. An experiment is pure data + one pure function:
  * adding a new experiment never requires touching the core or the UI.
@@ -137,6 +170,8 @@ export interface ExperimentDefinition {
   title: string;
   tagline: string;
   subject: string;
+  /** Emoji shown on the catalogue card. */
+  icon?: string;
   sensor: SensorKind;
   /** Capture length in seconds. */
   durationSec: number;
@@ -154,6 +189,8 @@ export interface ExperimentDefinition {
   illustration?: string;
   /** Things that commonly go wrong, shown in the lab report's discussion. */
   errorSources?: string[];
+  /** The two or three ideas a student should remember ("key ideas"), shown with the results. */
+  takeaways?: string[];
   theory: {
     summary: string;
     /** Plain-text formula shown to the student, e.g. "g = 4π²L / T²". */
@@ -165,6 +202,8 @@ export interface ExperimentDefinition {
   sampleRecordings?: () => Recording[];
   /** True for experiments a student created in the builder. */
   custom?: boolean;
+  /** Optional simulated version of the experiment ("virtual lab" mode). */
+  virtual?: VirtualLab;
   /** Live-preview channel selector: one number per incoming sample. */
   preview: (sample: Record<string, number>) => number;
   previewLabel: string;

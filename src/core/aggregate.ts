@@ -38,6 +38,10 @@ export function meanOfTrials(trials: TrialData[]): AnalysisResult {
         ],
       },
     ],
+    story: [
+      `You did the experiment ${n} times. The average of your results is ${m.toFixed(first.digits)} ${first.unit}.`,
+      `Your trials differ from each other by about ${scatter.toPrecision(2)} ${first.unit}. Small differences like this are normal: every measurement wobbles a little. Averaging several trials cancels much of that wobble, which is why scientists repeat experiments.`,
+    ],
     steps: [
       `Mean of ${n} trials: ${first.symbol} = (${values.map((v) => v.toFixed(first.digits)).join(' + ')}) / ${n} = ${m.toFixed(first.digits)} ${first.unit}.`,
       `Standard error from the spread: s/√n = ${scatter.toFixed(first.digits + 1)} ${first.unit}; combined per-trial uncertainty: ${combined.toFixed(first.digits + 1)} ${first.unit}.`,

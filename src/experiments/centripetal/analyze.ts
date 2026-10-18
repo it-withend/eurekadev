@@ -129,6 +129,12 @@ export function analyzeCentripetal(rec: Recording): AnalysisResult {
         series: [line('ω', t, omega, 2)],
       },
     ],
+    story: [
+      `The chair turned at many different speeds — fastest about ${fmt((Math.sqrt(xMax) * 60) / (2 * Math.PI), 0)} turns per minute.`,
+      'Anything going round in a circle is constantly pulled towards the centre. That pull is what you feel as being “pushed outwards” on a merry-go-round.',
+      'The faster it spins, the stronger the pull — and not just a little: spin twice as fast and the pull becomes four times stronger. That is why the graph uses speed², and why your dots line up on a straight line.',
+      `How steep that line is tells how far the phone was from the centre: ${fmt(r * CM, 1)} cm. Your ruler said ${fmt(rRuler * CM, 1)} cm — the phone worked out the distance just from feeling the spin.`,
+    ],
     steps: [
       `ω is the length of the gyroscope vector; ${keep.length} samples (thinned to ${FIT_RATE} Hz) with ω ≥ ${MIN_OMEGA} rad/s were used.`,
       `Each accelerometer axis was fitted as a = (constant) + (slope)·ω². The constants add up to gravity, ${fmt(gravity, 2)} m/s² — a built-in check that the phone stayed put.`,

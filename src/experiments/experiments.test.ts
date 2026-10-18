@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { synthCentripetal, synthPendulum, synthResonance } from '@testing/synthetic';
 import { parseRecording, withParams } from '@core/recording';
 import { summarizeTrials } from '@core/aggregate';
+import { defaultParams } from '@core/params';
+import { agreement } from '../ui/verdict';
 import type { AnalysisResult } from '@core/types';
 import { registry } from './index';
 import { speedOfSound } from './resonance/analyze';
@@ -17,7 +19,10 @@ const centripetal = registry.get('centripetal')!;
 
 describe('registry', () => {
   it('lists all experiments with unique ids', () => {
-    expect(registry.list().map((e) => e.id)).toEqual(['pendulum', 'resonance', 'centripetal']);
+    const ids = registry.list().map((e) => e.id);
+    expect(ids.slice(0, 3)).toEqual(['pendulum', 'resonance', 'centripetal']);
+    expect(ids.length).toBe(12);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 
@@ -133,5 +138,35 @@ describe('recording format', () => {
     expect(parseRecording(JSON.parse(JSON.stringify(rec)))).toEqual(rec);
     expect(() => parseRecording({ format: 'nope' })).toThrow(/valid PocketLab/);
     expect(() => parseRecording({ ...rec, channels: { a: [1, 2], b: [1] } })).toThrow(/different lengths/);
+  });
+});
+
+describe('virtual lab', () => {
+  it('every virtual lab produces data the real analysis accepts', () => {
+    for (const def of registry.list().filter((d) => d.virtual)) {
+      const params = defaultParams(def.params);
+      const knobs = Object.fromEntries(def.virtual!.controls.map((c) => [c.id, c.default]));
+      const r = expectOk(def.analyze(def.virtual!.simulate(params, knobs, 1)));
+      expect(agreement(r.primary).verdict, def.id).toBe('agrees');
+    }
+  });
+
+  it.each([
+    ['Moon', 1.62],
+    ['Mars', 3.71],
+    ['Jupiter', 24.79],
+  ])('pendulum on %s: right axis and reference for any gravity', (_, gravity) => {
+    // Regression: the swing axis was searched near Earth's swing rate, so on the Moon it often missed.
+    for (let seed = 1; seed <= 10; seed++) {
+      const r = expectOk(pendulum.analyze(pendulum.virtual!.simulate(defaultParams(pendulum.params), { angle: 12, gravity }, seed * 7919)));
+      expect(agreement(r.primary).verdict).toBe('agrees');
+    }
+  });
+
+  it('a pendulum on the Moon is compared with the Moon’s gravity', () => {
+    const params = defaultParams(pendulum.params);
+    const r = expectOk(pendulum.analyze(pendulum.virtual!.simulate(params, { angle: 10, gravity: 1.62 }, 2)));
+    expect(r.primary.accepted).toBe(1.62);
+    expect(Math.abs(r.primary.measured - 1.62) / 1.62).toBeLessThan(0.01);
   });
 });

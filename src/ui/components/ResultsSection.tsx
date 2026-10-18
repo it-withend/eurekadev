@@ -20,7 +20,9 @@ function Failure({ result }: { result: Extract<AnalysisResult, { ok: false }> })
 }
 
 const ORIGIN_TEXT = (t: AnalyzedTrial) =>
-  t.origin === 'sample' && t.recording.meta?.synthetic
+  t.origin === 'virtual'
+    ? 'virtual lab (simulated)'
+    : t.origin === 'sample' && t.recording.meta?.synthetic
     ? 'sample data (simulated)'
     : t.origin === 'file'
       ? 'loaded recording'
@@ -30,10 +32,14 @@ function TrialDetail({
   def,
   trial,
   onParamsChange,
+  showTakeaways,
+  onAsk,
 }: {
   def: ExperimentDefinition;
   trial: AnalyzedTrial;
   onParamsChange: (p: Record<string, number>) => void;
+  showTakeaways: boolean;
+  onAsk?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   return (
@@ -56,7 +62,11 @@ function TrialDetail({
           <ParamForm key={trial.id} specs={def.params} values={trial.recording.params} onChange={onParamsChange} />
         </div>
       )}
-      {trial.result.ok ? <ResultView result={trial.result} /> : <Failure result={trial.result} />}
+      {trial.result.ok ? (
+        <ResultView result={trial.result} takeaways={showTakeaways ? def.takeaways : undefined} onAsk={onAsk} />
+      ) : (
+        <Failure result={trial.result} />
+      )}
     </div>
   );
 }
@@ -70,6 +80,7 @@ export function ResultsSection({
   onRemove,
   onClear,
   onParamsChange,
+  onAsk,
 }: {
   def: ExperimentDefinition;
   trials: AnalyzedTrial[];
@@ -79,6 +90,8 @@ export function ResultsSection({
   onRemove: (id: string) => void;
   onClear: () => void;
   onParamsChange: (id: string, p: Record<string, number>) => void;
+  /** Opens the AI tutor (absent when it is not available). */
+  onAsk?: () => void;
 }) {
   const [shared, setShared] = useState<ShareOutcome | null>(null);
   if (trials.length === 0) return null;
@@ -126,7 +139,7 @@ export function ResultsSection({
       {summary && (
         <div className="result-block">
           <h3 className="block-title">Combined result · {okCount} trials</h3>
-          {summary.ok ? <ResultView result={summary} /> : <Failure result={summary} />}
+          {summary.ok ? <ResultView result={summary} takeaways={def.takeaways} onAsk={onAsk} /> : <Failure result={summary} />}
         </div>
       )}
 
@@ -136,6 +149,8 @@ export function ResultsSection({
           def={def}
           trial={selected}
           onParamsChange={(p) => onParamsChange(selected.id, p)}
+          showTakeaways={!summary?.ok}
+          onAsk={onAsk}
         />
       )}
     </section>

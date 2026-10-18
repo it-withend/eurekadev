@@ -3,7 +3,7 @@ import type { ExperimentDefinition } from '@core/types';
 import type { AnalyzedTrial } from '../hooks/useTrials';
 import { agreement } from '../verdict';
 
-const ORIGIN = { sensor: 'phone', sample: 'sample', file: 'file' } as const;
+const ORIGIN = { sensor: 'phone', sample: 'sample', file: 'file', virtual: 'virtual' } as const;
 
 export function TrialsTable({
   def,

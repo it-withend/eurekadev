@@ -6,6 +6,9 @@ import { useCapture } from '../hooks/useCapture';
 import { useTrials, type TrialOrigin } from '../hooks/useTrials';
 import { CaptureOverlay } from '../components/CaptureOverlay';
 import { MeasurePanel } from '../components/MeasurePanel';
+import { VirtualPanel } from '../components/VirtualPanel';
+import { TutorChat } from '../components/TutorChat';
+import { tutorContext } from '../tutor';
 import { ResultsSection } from '../components/ResultsSection';
 import { Worksheet } from '../components/Worksheet';
 import { StepBar, StepHeading } from '../components/Steps';
@@ -22,7 +25,13 @@ async function fetchRecording(path: string): Promise<Recording> {
 export function ExperimentPage({ def, demo = false }: { def: ExperimentDefinition; demo?: boolean }) {
   const [params, setParams] = useState(() => defaultParams(def.params));
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Phones start in the real lab, laptops (no motion sensors) in the virtual one.
+  const [mode, setMode] = useState<'real' | 'virtual'>(() =>
+    def.virtual && !window.matchMedia?.('(pointer: coarse)').matches ? 'virtual' : 'real',
+  );
   const resultsRef = useRef<HTMLDivElement>(null);
+  const [tutorOpen, setTutorOpen] = useState(false);
+  const [tutorQuestion, setTutorQuestion] = useState<string | null>(null);
   const trials = useTrials(def);
 
   const reveal = () =>
@@ -92,6 +101,18 @@ export function ExperimentPage({ def, demo = false }: { def: ExperimentDefinitio
         <p className="print-only report-meta">PocketLab lab report · printed {new Date().toLocaleDateString()}</p>
       </header>
 
+      {def.virtual && (
+        <div className="mode-switch no-print" role="tablist" aria-label="Lab mode" data-tour="mode">
+          <button role="tab" aria-selected={mode === 'real'} className={mode === 'real' ? 'on' : ''} onClick={() => setMode('real')}>
+            📱 Real lab
+            <small>measure with your phone’s sensors</small>
+          </button>
+          <button role="tab" aria-selected={mode === 'virtual'} className={mode === 'virtual' ? 'on' : ''} onClick={() => setMode('virtual')}>
+            🖥 Virtual lab
+            <small>practise with a simulation</small>
+          </button>
+        </div>
+      )}
       <StepBar current={trials.trials.length ? 'step-results' : 'step-setup'} reached={trials.trials.length ? 'step-results' : 'step-setup'} />
 
       <div className="exp-grid">
@@ -112,6 +133,9 @@ export function ExperimentPage({ def, demo = false }: { def: ExperimentDefinitio
           </ol>
         </section>
 
+        {mode === 'virtual' && def.virtual ? (
+          <VirtualPanel def={def} params={params} onParamsChange={setParams} onResult={(rec) => accept(rec, 'virtual')} />
+        ) : (
         <MeasurePanel
           def={def}
           params={params}
@@ -123,6 +147,7 @@ export function ExperimentPage({ def, demo = false }: { def: ExperimentDefinitio
           onLoadFile={loadFile}
           loadError={loadError}
         />
+        )}
       </div>
 
       <details className="panel physics">
@@ -148,10 +173,33 @@ export function ExperimentPage({ def, demo = false }: { def: ExperimentDefinitio
           onRemove={trials.remove}
           onClear={trials.clear}
           onParamsChange={trials.updateParams}
+          onAsk={() => {
+            setTutorQuestion('Explain my result in simple words');
+            setTutorOpen(true);
+          }}
         />
       </div>
 
       <Worksheet def={def} />
+
+      {!tutorOpen && (
+        <button className="tutor-fab no-print" data-tour="tutor" onClick={() => setTutorOpen(true)}>
+          🤖 Ask the AI tutor
+        </button>
+      )}
+      <TutorChat
+        open={tutorOpen}
+        onClose={() => setTutorOpen(false)}
+        initialQuestion={tutorQuestion}
+        context={() =>
+          tutorContext(def, {
+            params,
+            result: trials.selected?.result,
+            summary: trials.summary,
+            trials: trials.trials.length,
+          })
+        }
+      />
     </article>
   );
 }

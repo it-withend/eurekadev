@@ -1,12 +1,14 @@
 import type { ExperimentDefinition } from '@core/types';
 import { analyzePendulum, pendulumParams, summarizePendulum } from './analyze';
 import { pendulumIllustration } from './illustration';
+import { pendulumVirtual } from '../virtual';
 
 export const pendulum: ExperimentDefinition = {
   id: 'pendulum',
   title: 'Measure Gravity with a Pendulum',
   tagline: 'Swing your phone on a string and measure g to within 1 %.',
   subject: 'Mechanics',
+  icon: '🕰️',
   sensor: 'motion',
   durationSec: 25,
   countdownSec: 5,
@@ -28,6 +30,11 @@ export const pendulum: ExperimentDefinition = {
       'For small swings a pendulum’s period depends only on its length and on gravity. The phone’s gyroscope measures its angular velocity, which oscillates once per swing — so timing the oscillation gives T, and T gives g.',
     formula: 'T = 2π√(L/g)  ⇒  g = 4π²L / T²',
   },
+  takeaways: [
+    'A pendulum’s swing time depends on its length and on gravity — not on its mass.',
+    'Four times longer string → twice the swing time (T grows with √L).',
+    'Plotting T² against L gives a straight line whose slope is 4π²/g.',
+  ],
   errorSources: [
     'Measuring L: the effective length is to the phone’s centre of mass, which is hard to locate exactly.',
     'The phone is an extended object, not a point mass (physical pendulum), which slightly lengthens the period.',
@@ -37,6 +44,7 @@ export const pendulum: ExperimentDefinition = {
   demoDatasets: [1, 2, 3, 4].map((i) => `datasets/pendulum-demo-${i}.json`),
   preview: (s) => Math.hypot(s.gx, s.gy, s.gz),
   previewLabel: 'rotation (rad/s)',
+  virtual: pendulumVirtual,
   analyze: analyzePendulum,
   summarize: summarizePendulum,
 };

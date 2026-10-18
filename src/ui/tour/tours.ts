@@ -10,7 +10,7 @@ export const CATALOG_TOUR: TourStep[] = [
   {
     target: 'experiments',
     title: 'Pick an experiment',
-    body: 'Each card is a complete lab: what you need, what to do, and the physics behind it. You only need household items like a string, a glass or a desk chair.',
+    body: 'Each card is a complete lab: what you need, what to do, and the physics behind it. Filter by topic or search. Cards marked “Virtual lab” can also be done as a simulation, without equipment.',
   },
   {
     target: 'nav-sensors',
@@ -34,6 +34,11 @@ export const EXPERIMENT_TOUR: TourStep[] = [
     target: 'steps',
     title: 'Four steps to a result',
     body: 'Every experiment goes Set up → Measure → Results → Write up. This bar shows where you are; tap a step to jump to it.',
+  },
+  {
+    target: 'mode',
+    title: 'Real or virtual?',
+    body: 'Real lab measures with your phone’s sensors. Virtual lab is a simulation with sliders — practise there first, or use it when you have no phone or equipment. Both are analysed the same way.',
   },
   {
     target: 'setup',
@@ -64,6 +69,11 @@ export const EXPERIMENT_TOUR: TourStep[] = [
     target: 'worksheet',
     title: '4 · Write it up',
     body: 'Add your hypothesis and conclusion, then press "Lab report (PDF)" to get a finished report you can hand in.',
+  },
+  {
+    target: 'tutor',
+    title: 'Stuck? Ask the AI tutor',
+    body: 'The tutor knows this experiment and sees your numbers. Ask “why is my result different?” or “explain the formula” — in any language.',
   },
 ];
 

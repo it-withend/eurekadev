@@ -4,7 +4,7 @@ import { parseRecording, withParams } from '@core/recording';
 import type { AnalysisResult, ExperimentDefinition, Recording, TrialData } from '@core/types';
 import { load, saveList } from '../storage';
 
-export type TrialOrigin = 'sensor' | 'sample' | 'file';
+export type TrialOrigin = 'sensor' | 'sample' | 'file' | 'virtual';
 
 export interface Trial {
   id: string;

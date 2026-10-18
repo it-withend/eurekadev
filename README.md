@@ -22,11 +22,28 @@ physics-education research has shown are accurate enough for real experiments [2
 
 ## What it does
 
-| Experiment | Sensor | What you measure | Method |
+**12 experiments, two modes.** Every experiment can be done for real with the phone's sensors; the
+core ones also have a **virtual lab** (animated simulation with sliders — even on the Moon or Mars)
+whose data goes through the same analysis, so students can practise the method before or without
+equipment.
+
+| Experiment | Sensor | Measures | Virtual lab |
 |---|---|---|---|
-| Gravity with a pendulum | gyroscope (accelerometer fallback) | **g** | zero-crossing period + FFT cross-check, large-amplitude correction [5], error propagation |
-| Speed of sound from a singing tube | microphone | **v_sound** | Welch-averaged FFT, sub-bin peak interpolation, end correction [6] |
-| Circular motion on a spinning chair | gyroscope + accelerometer | **r** from a = ω²r | least-squares fit of a vs ω², R² and standard errors |
+| 🕰️ Gravity with a pendulum | gyroscope (accelerometer fallback) | **g** (+ T² vs L investigation) | ✓ |
+| 🎶 Singing tube | microphone | **speed of sound** | ✓ (hear the note) |
+| 🪑 Spinning chair | gyroscope + accelerometer | **a = ω²r**, radius | ✓ |
+| 🪀 How stiff is a spring? | motion | spring constant k | |
+| 🛝 How long is a swing? | motion | swing length from its rhythm | |
+| 🎸 Which note is this? | microphone | pitch vs A = 440 Hz | |
+| 🎻 Wave on a string | microphone | wave speed v = 2Lf | |
+| 🦘 How hard do you land? | accelerometer | landing force in g | |
+| 🛗 Feeling heavier in a lift | accelerometer | apparent weight % | |
+| 💿 Turntable speed | gyroscope | rpm | |
+| 📚 How grippy is a surface? | accelerometer (tilt) | friction coefficient μ = tan θ | |
+| ⛰️ How steep is that ramp? | accelerometer (tilt) | slope in % | |
+
+The library experiments are pure data (a few lines each, the same format as the builder), which is
+how the catalogue grows without new signal-processing code.
 
 For every measurement, PocketLab:
 
@@ -34,7 +51,10 @@ For every measurement, PocketLab:
 - **runs the capture hands-free**: a full-screen countdown, beeps and vibration at start and stop
   (the phone is swinging or spinning, so you can't watch it), and the screen kept awake;
 - **shows the result honestly**: value ± uncertainty, accepted value, % error, deviation in σ;
-- **explains the calculation**: the derivation with the student's own numbers;
+- **explains it two ways**: *in simple words* (what happened, with the student's numbers, no formulas)
+  or *with formulas* (the full derivation), plus the 2–3 **key ideas** to remember;
+- **answers questions**: an **AI tutor** (Groq, Llama 3.3) inside every experiment that sees the
+  student's numbers and explains in any language — grounded in the measured data, never inventing results;
 - **supports real lab practice**: repeated trials with mean ± standard error, and a
   **T² vs L investigation** when the pendulum length is varied (g from the slope, which also cancels
   a constant error in measuring L);
@@ -68,6 +88,17 @@ PocketLab is complementary: **one guided experiment at a time, from setup to
 conclusion.** It does the signal processing automatically, but shows every step, so
 the method is visible rather than hidden. It runs in any browser from a link, with no
 install or account, and works offline once loaded.
+
+## AI tutor
+
+Optional and server-side: the browser calls `/api/chat` (a Vercel function, `api/chat.ts`), which adds
+the Groq API key, so the key never reaches the browser. It receives only the question and the
+experiment's numbers, is rate-limited per client, and is instructed to use only the measured data and
+to guide rather than hand out answers. Without a key the rest of the app works exactly the same and
+the tutor says it is not switched on.
+
+To enable it: get a free key at https://console.groq.com/keys, then in Vercel → Project → Settings →
+Environment Variables add `GROQ_API_KEY` and redeploy. Locally, copy `.env.example` to `.env.local`.
 
 ## Device compatibility
 
@@ -151,7 +182,8 @@ Any static host works for deployment (Vercel, Netlify, GitHub Pages): build comm
 - **Layered and enforced**: `dsp` ← `core` ← `experiments` ← `ui`, with ESLint rules that fail the
   build if a lower layer imports a higher one.
 - **Reproducible recordings** in a versioned JSON format: replay, share with a teacher, test.
-- **Offline-capable PWA**, with no backend and no tracking. Data never leaves the device.
+- **Offline-capable PWA**, no tracking. Measurements never leave the device; only questions to the
+  optional AI tutor are sent (with that experiment's numbers).
 - **Spoken instructions** during recording (Web Speech API), since the student cannot read a swinging phone.
 - **Share result** through the phone's share sheet (text summary + recording file), e.g. to a teacher.
 - CI on GitHub Actions: typecheck, lint, unit tests, validation report, build, and Playwright e2e tests.

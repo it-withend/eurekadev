@@ -32,6 +32,8 @@ export interface CustomExperimentSpec {
   expected?: { value: number; uncertainty: number; source: string };
   materials: string[];
   instructions: string[];
+  /** Key ideas to remember (built-in experiments; optional for student-made ones). */
+  takeaways?: string[];
 }
 
 const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -101,10 +103,10 @@ export function parseCustomSpec(json: unknown): CustomExperimentSpec {
       unit: String(s.result?.unit ?? '').slice(0, 12),
       digits: Math.min(6, Math.max(0, Math.round(Number(s.result?.digits ?? 3)))),
     },
-    expected:
-      s.expected && Number.isFinite(Number(s.expected.value))
-        ? { value: Number(s.expected.value), uncertainty: Math.max(0, Number(s.expected.uncertainty) || 0), source: String(s.expected.source ?? '').slice(0, 80) }
-        : undefined,
+    ...(s.expected && Number.isFinite(Number(s.expected.value))
+      ? { expected: { value: Number(s.expected.value), uncertainty: Math.max(0, Number(s.expected.uncertainty) || 0), source: String(s.expected.source ?? '').slice(0, 80) } }
+      : {}),
+    ...(Array.isArray(s.takeaways) ? { takeaways: s.takeaways.slice(0, 6).map((t) => String(t).slice(0, 200)) } : {}),
     materials: Array.isArray(s.materials) ? s.materials.slice(0, 12).map((m) => String(m).slice(0, 120)) : [],
     instructions: Array.isArray(s.instructions) ? s.instructions.slice(0, 12).map((m) => String(m).slice(0, 300)) : [],
   };

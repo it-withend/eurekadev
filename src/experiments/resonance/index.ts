@@ -1,12 +1,14 @@
 import type { ExperimentDefinition } from '@core/types';
 import { analyzeResonance, resonanceParams } from './analyze';
 import { resonanceIllustration } from './illustration';
+import { resonanceVirtual } from '../virtual';
 
 export const resonance: ExperimentDefinition = {
   id: 'resonance',
   title: 'Speed of Sound from a Singing Tube',
   tagline: 'Blow across a tube, let the microphone hear its note, compute the speed of sound.',
   subject: 'Waves & Sound',
+  icon: '🎶',
   sensor: 'audio',
   durationSec: 4,
   capturePrompts: {
@@ -27,6 +29,11 @@ export const resonance: ExperimentDefinition = {
       'An air column resonates when a whole number of quarter-wavelengths fits inside it. The microphone hears that note; a Fourier transform finds its exact frequency, and wavelength × frequency gives the speed of sound.',
     formula: 'closed: v = 4f(L + 0.3d)    open: v = 2f(L + 0.6d)',
   },
+  takeaways: [
+    'A tube amplifies only notes whose sound wave fits inside it: that is resonance.',
+    'Speed of a wave = frequency × wavelength.',
+    'Sound travels about 343 m/s in air at 20 °C — faster when the air is warmer.',
+  ],
   errorSources: [
     'The end correction (0.3d per open end) is an approximation that depends on the shape of the rim.',
     'A glass that narrows or a thick base changes the effective length.',
@@ -36,5 +43,6 @@ export const resonance: ExperimentDefinition = {
   demoDatasets: ['datasets/resonance-demo.json'],
   preview: (s) => s.rms,
   previewLabel: 'loudness (RMS)',
+  virtual: resonanceVirtual,
   analyze: analyzeResonance,
 };

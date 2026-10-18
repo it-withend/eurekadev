@@ -43,7 +43,7 @@ export function AboutPage() {
         replayed, shared with a teacher, or used as a test case.
       </p>
       <p>
-        Privacy by design: everything runs on the device. No data leaves the phone unless you choose to save a file.
+        Privacy by design: measurements and analysis run on the device. Nothing leaves the phone unless you save or share a file, or ask the optional AI tutor a question (then only that question and the experiment’s numbers are sent).
       </p>
     </article>
   );

@@ -146,9 +146,7 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
       symbol: 'g',
       measured: g,
       uncertainty: dg,
-      accepted: STANDARD_GRAVITY,
-      acceptedUncertainty: LOCAL_G_SPREAD,
-      acceptedSource: 'standard gravity (local g varies 9.78–9.83 m/s²)',
+      ...reference(rec),
       unit: 'm/s²',
       digits: 3,
     },
@@ -160,6 +158,12 @@ export function analyzePendulum(rec: Recording): AnalysisResult {
       { label: 'FFT cross-check period', value: Tfft, unit: 's', digits: 4 },
     ],
     charts,
+    story: [
+      `Your phone swung back and forth ${est.cycles} times. One full swing — there and back — took ${fmt(T, 2)} seconds.`,
+      'A pendulum’s swing time depends only on two things: how long it is and how strongly gravity pulls. Not on how heavy it is, and hardly on how far you pull it aside.',
+      `Your pendulum was ${fmt(L * 100, 0)} cm long. A longer string swings more slowly, stronger gravity makes it swing faster. For ${fmt(L * 100, 0)} cm to take ${fmt(T, 2)} s per swing, gravity must be about ${fmt(g, 2)} m/s².`,
+      `That number means: anything you drop speeds up by about ${fmt(g, 1)} metres per second, every second it falls. Scientists measure 9.81 here on Earth.`,
+    ],
     steps: [
       hasGyro
         ? `Found ${est.cycles} full swings on the ${source.name} axis; mean period T = ${fmt(T, 4)} ± ${fmt(dT, 4)} s.`
@@ -230,7 +234,9 @@ function amplitudeFromTension(rec: Recording): number {
  */
 function pickSwingAxis(rec: Recording, axes: readonly string[], L: number, periodFactor: number) {
   const sr = rec.sampleRate;
-  const fExpected = (periodFactor * Math.sqrt(STANDARD_GRAVITY / L)) / (2 * Math.PI);
+  // Expected swing rate for the gravity we compare with (Earth, or the virtual lab's planet).
+  const gRef = reference(rec).accepted;
+  const fExpected = (periodFactor * Math.sqrt(gRef / L)) / (2 * Math.PI);
   let best: { name: string; signal: Float64Array; score: number } | null = null;
   for (const name of axes) {
     const data = rec.channels[name];
@@ -245,6 +251,15 @@ function pickSwingAxis(rec: Recording, axes: readonly string[], L: number, perio
     if (!best || score > best.score) best = { name, signal, score };
   }
   return best;
+}
+
+/** The value to compare with: Earth's gravity, or the gravity chosen in the virtual lab. */
+function reference(rec: Recording) {
+  const chosen = rec.meta?.virtual?.gravity;
+  if (chosen !== undefined && Math.abs(chosen - STANDARD_GRAVITY) > 0.05) {
+    return { accepted: chosen, acceptedUncertainty: 0, acceptedSource: 'the gravity you chose in the virtual lab' };
+  }
+  return { accepted: STANDARD_GRAVITY, acceptedUncertainty: LOCAL_G_SPREAD, acceptedSource: 'standard gravity (local g varies 9.78–9.83 m/s²)' };
 }
 
 /**
@@ -274,9 +289,7 @@ export function summarizePendulum(trials: TrialData[]): AnalysisResult | null {
       symbol: 'g',
       measured: g,
       uncertainty: dg,
-      accepted: STANDARD_GRAVITY,
-      acceptedUncertainty: LOCAL_G_SPREAD,
-      acceptedSource: 'standard gravity (local g varies 9.78–9.83 m/s²)',
+      ...reference(trials[0].recording),
       unit: 'm/s²',
       digits: 3,
     },
@@ -297,6 +310,11 @@ export function summarizePendulum(trials: TrialData[]): AnalysisResult | null {
           { name: 'best fit', x: [0, xMax], y: [fit.intercept, fit.intercept + fit.slope * xMax], style: 'line', color: 1 },
         ],
       },
+    ],
+    story: [
+      `You timed the pendulum at ${distinct} different lengths. Longer pendulums swing more slowly — but not in proportion: twice the length does not mean twice the time.`,
+      'Squaring the swing time fixes that: swing-time² grows exactly in step with the length, so the dots on the graph lie on a straight line.',
+      `How steep that line is depends only on gravity. Your line gives g ≈ ${fmt(g, 2)} m/s². Because it uses all your trials together, it is more reliable than any single swing.`,
     ],
     steps: [
       `Squaring T = 2π√(L/g) gives T² = (4π²/g)·L: a straight line through the origin.`,

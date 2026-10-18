@@ -179,8 +179,12 @@ export function synthCentripetal(o: {
 
 /** Generic samples for student-made experiments (one per measure kind). */
 export function synthGenericMotion(o: {
-  kind: 'oscillation' | 'jolt' | 'spin';
-  /** Oscillation period (s), jolt size (m/s²) or spin rate (rad/s). */
+  kind: 'oscillation' | 'jolt' | 'spin' | 'tilt' | 'still';
+  /**
+   * Oscillation period (s), jolt size (m/s²), spin rate (rad/s), or an angle in
+   * degrees: 'tilt' slowly tilts the surface until the phone slides at that
+   * angle; 'still' rests the phone on a slope of that angle.
+   */
   value: number;
   seconds?: number;
   seed?: number;
@@ -208,9 +212,21 @@ export function synthGenericMotion(o: {
       }
     }
     if (o.kind === 'spin') spin = t > 2 && t < n / sr - 2 ? o.value : 0;
-    ch.ax.push(0.05 * r.gauss());
+    // Tilt: gravity splits between the phone's surface (x) and its normal (z).
+    let theta = 0;
+    let slide = 0;
+    if (o.kind === 'still') theta = o.value;
+    if (o.kind === 'tilt') {
+      const slipAt = 10;
+      theta = t < 2 ? 0 : t < slipAt ? (o.value * (t - 2)) / (slipAt - 2) : o.value;
+      // While sliding, the phone accelerates down the slope: it feels less of the slope.
+      if (t >= slipAt && t < slipAt + 0.6) slide = 9.81 * Math.sin((o.value * Math.PI) / 180) * 0.7;
+      if (t >= slipAt + 0.6 && t < slipAt + 0.7) slide = -6; // stops against the edge
+    }
+    const rad = (theta * Math.PI) / 180;
+    ch.ax.push(9.81 * Math.sin(rad) - slide + 0.05 * r.gauss());
     ch.ay.push(0.05 * r.gauss());
-    ch.az.push(9.81 + bounce + jolt + 0.05 * r.gauss());
+    ch.az.push(9.81 * Math.cos(rad) + bounce + jolt + 0.05 * r.gauss());
     ch.gx.push(0.01 * r.gauss());
     ch.gy.push(0.01 * r.gauss());
     ch.gz.push(spin + 0.01 * r.gauss());

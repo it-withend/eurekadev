@@ -87,8 +87,19 @@ export function createCustomExperiment(spec: CustomExperimentSpec): ExperimentDe
       );
     }
 
+    const story = [
+      `The phone measured the ${measure.quantity.toLowerCase()}: ${fmt(ex.value, 3)} ${measure.unit}.`,
+      ...(spec.formula.trim()
+        ? [`Your formula turns that into ${result.name.toLowerCase()}: ${fmt(R, result.digits)} ${result.unit}.`]
+        : []),
+      main.symbol
+        ? `The ± part (${fmt(dR, result.digits)} ${result.unit}) shows how precise this is. It comes mostly from ${main.symbol === measure.symbol ? 'the measurement itself' : `how precisely you know ${main.symbol}`}.`
+        : 'Repeat the experiment a few times: if your results agree with each other, you can trust them.',
+    ];
+
     return {
       ok: true,
+      story,
       primary: {
         quantity: result.name,
         symbol: result.symbol,
@@ -121,6 +132,10 @@ export function createCustomExperiment(spec: CustomExperimentSpec): ExperimentDe
         return [seeded(synthGenericMotion({ kind: 'jolt', value: measure.example }))];
       case 'spin':
         return [seeded(synthGenericMotion({ kind: 'spin', value: measure.example }))];
+      case 'tiltMax':
+        return [seeded(synthGenericMotion({ kind: 'tilt', value: measure.example }))];
+      case 'tilt':
+        return [seeded(synthGenericMotion({ kind: 'still', value: measure.example }))];
       default:
         return [seeded(synthGenericMotion({ kind: 'oscillation', value: measure.example }))];
     }
@@ -138,6 +153,7 @@ export function createCustomExperiment(spec: CustomExperimentSpec): ExperimentDe
     params,
     materials: spec.materials.length ? spec.materials : ['Your phone'],
     instructions: spec.instructions.length ? spec.instructions : [measure.explain],
+    takeaways: spec.takeaways,
     theory: {
       summary: `${measure.explain} ${spec.formula.trim() ? `Then your formula turns ${measure.symbol} into ${result.name.toLowerCase()}.` : ''}`,
       formula: spec.formula.trim() ? `${result.symbol} = ${spec.formula}` : `${measure.symbol} (${measure.unit})`,

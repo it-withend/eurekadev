@@ -18,7 +18,7 @@ import {
 import type { ChartSpec, Measurement, Recording, SensorKind } from '@core/types';
 import { ACCEL, GYRO, fmt, line, points, timeAxis } from '../shared';
 
-export type MeasureKind = 'period' | 'frequency' | 'pitch' | 'peak' | 'spin';
+export type MeasureKind = 'period' | 'frequency' | 'pitch' | 'peak' | 'spin' | 'tiltMax' | 'tilt';
 
 export type Extraction =
   | {
@@ -265,6 +265,81 @@ function spinExtract(rec: Recording): Extraction {
   };
 }
 
+/* ---------- tilt angle ---------- */
+
+/**
+ * Angle between the phone's screen and the horizontal, from where gravity
+ * points in the phone's frame: θ = atan2(|in-plane part|, |normal part|).
+ * Sign- and axis-label independent (iOS reports the opposite sign).
+ */
+function tiltSeries(rec: Recording): Float64Array | null {
+  const [ax, ay, az] = ACCEL.map((c) => rec.channels[c]);
+  if (!ax || !ay || !az) return null;
+  const sr = rec.sampleRate;
+  const fx = lowPass(ax, sr, 2);
+  const fy = lowPass(ay, sr, 2);
+  const fz = lowPass(az, sr, 2);
+  return Float64Array.from(fx, (_, i) => (Math.atan2(Math.hypot(fx[i], fy[i]), Math.abs(fz[i])) * 180) / Math.PI);
+}
+
+/** A phone resting on a surface is not perfectly parallel to it (case, camera bump): ±0.5°. */
+const TILT_SEATING = 0.5;
+
+function tiltExtract(rec: Recording, mode: 'max' | 'steady'): Extraction {
+  const theta = tiltSeries(rec);
+  if (!theta) return { ok: false, error: 'Recording is missing accelerometer data.' };
+  const sr = rec.sampleRate;
+  const t = timeAxis(theta.length, sr);
+  const noise = quietNoise(theta, sr);
+  if (mode === 'max') {
+    // Largest angle before the phone slipped: while sliding it feels less of the slope, so the peak is just before.
+    let peak = 0;
+    let at = 0;
+    for (let i = 0; i < theta.length; i++) if (theta[i] > peak) [peak, at] = [theta[i], i];
+    if (peak < 2) return { ok: false, error: 'The surface was hardly tilted.', hint: 'Slowly lift one end of the surface until the phone starts to slide.' };
+    return {
+      ok: true,
+      value: peak,
+      uncertainty: Math.hypot(noise, TILT_SEATING),
+      charts: [
+        {
+          title: 'Tilt angle over time',
+          caption: 'How steep the surface was. The angle rises as you lift it; the marked point is the steepest angle just before the phone slid.',
+          xLabel: 'time (s)',
+          yLabel: 'angle (°)',
+          series: [line('angle', t, theta, 0), points('slipped here', [at / sr], [peak], 1)],
+        },
+      ],
+      steps: [
+        `The tilt angle comes from where gravity points relative to the phone: θ = atan(in-plane part / perpendicular part).`,
+        `Steepest angle before sliding: θ = ${fmt(peak, 1)}° at t = ${fmt(at / sr, 1)} s (± ${fmt(Math.hypot(noise, TILT_SEATING), 1)}°, mostly from how the phone sits on the surface).`,
+      ],
+      measurements: [{ label: 'Sensor noise', value: noise, unit: '°', digits: 2 }],
+      warnings: [],
+    };
+  }
+  // Steady angle: the median ignores the moments of putting the phone down and picking it up.
+  const sorted = Array.from(theta).sort((a, b) => a - b);
+  const mid = sorted[sorted.length >> 1];
+  return {
+    ok: true,
+    value: mid,
+    uncertainty: Math.hypot(noise, TILT_SEATING),
+    charts: [
+      {
+        title: 'Tilt angle over time',
+        caption: 'The angle of the surface the phone lay on. A flat line means the phone was steady.',
+        xLabel: 'time (s)',
+        yLabel: 'angle (°)',
+        series: [line('angle', t, theta, 0)],
+      },
+    ],
+    steps: [`The phone measured how its screen is tilted relative to the horizontal: typical value θ = ${fmt(mid, 1)}°.`],
+    measurements: [{ label: 'Sensor noise', value: noise, unit: '°', digits: 2 }],
+    warnings: [],
+  };
+}
+
 export const MEASURES: Record<MeasureKind, MeasureDef> = {
   period: {
     id: 'period',
@@ -325,5 +400,29 @@ export const MEASURES: Record<MeasureKind, MeasureDef> = {
     examples: 'a turntable, a bicycle wheel (phone taped on), a merry-go-round',
     example: 3,
     extract: spinExtract,
+  },
+  tiltMax: {
+    id: 'tiltMax',
+    sensor: 'motion',
+    symbol: 'A',
+    quantity: 'Steepest angle before sliding',
+    unit: '°',
+    label: 'Steepest angle before the phone slides (angle A, in degrees)',
+    explain: 'Lay the phone on a surface and slowly tilt it until the phone starts to slide.',
+    examples: 'friction of a book cover, a cutting board, a wooden ramp',
+    example: 20,
+    extract: (r) => tiltExtract(r, 'max'),
+  },
+  tilt: {
+    id: 'tilt',
+    sensor: 'motion',
+    symbol: 'A',
+    quantity: 'Tilt angle',
+    unit: '°',
+    label: 'Angle of a slope (angle A, in degrees)',
+    explain: 'Lay the phone flat on a slope and keep it still.',
+    examples: 'a ramp, a roof window, a slide, a hill path',
+    example: 8,
+    extract: (r) => tiltExtract(r, 'steady'),
   },
 };

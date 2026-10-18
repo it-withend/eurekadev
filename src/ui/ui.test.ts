@@ -4,6 +4,9 @@ import { niceTicks } from './components/chartDraw';
 import { href, parseHash } from './router';
 import { agreement, explain } from './verdict';
 import { resultSummary } from './share';
+import { tutorContext } from './tutor';
+import { registry } from '@experiments/index';
+import { synthPendulum } from '@testing/synthetic';
 import type { ExperimentDefinition, SuccessfulAnalysis } from '@core/types';
 
 describe('router', () => {
@@ -67,5 +70,18 @@ describe('share summary', () => {
     expect(text).toContain('g = 9.86 ± 0.03 m/s²');
     expect(text).toContain('0.5 % error');
     expect(text).toContain('Trials: 4');
+  });
+});
+
+describe('AI tutor context', () => {
+  it('gives the tutor the student’s own numbers, verdict and error sources', () => {
+    const def = registry.get('pendulum')!;
+    const rec = synthPendulum({ length: 0.9, g: 9.81 });
+    const result = def.analyze(rec);
+    const text = tutorContext(def, { params: rec.params, result, summary: null, trials: 1 });
+    expect(text).toContain('Pendulum length L = 90 cm');
+    expect(text).toMatch(/Result of the selected trial: Gravitational acceleration g = 9\.\d{3} ± /);
+    expect(text).toContain('verdict shown to the student');
+    expect(text).toContain('Possible sources of error');
   });
 });

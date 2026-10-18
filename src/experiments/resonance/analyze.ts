@@ -120,6 +120,14 @@ export function analyzeResonance(rec: Recording): AnalysisResult {
         series: [line('audio', t, audio, 2)],
       },
     ],
+    story: [
+      `When you blew across the tube, the air inside it vibrated and “sang” one note: ${fmt(f, 0)} vibrations per second (${fmt(f, 0)} Hz).`,
+      closed
+        ? 'A tube only amplifies a note whose sound wave fits it. In a tube closed at the bottom, exactly a quarter of the wave fits inside — so the wave is four times longer than the tube.'
+        : 'A tube only amplifies a note whose sound wave fits it. In a tube open at both ends, exactly half of the wave fits inside — so the wave is twice as long as the tube.',
+      `So one whole sound wave was about ${fmt(factor * Leff * 100, 0)} cm long (a little longer than you might expect, because the vibrating air pokes slightly out of the opening).`,
+      `Sound travels one wave-length for every vibration. ${fmt(f, 0)} vibrations × ${fmt(factor * Leff, 2)} m = ${fmt(v, 0)} metres every second. At that speed, sound crosses a football pitch in about ${fmt(100 / v, 2)} s.`,
+    ],
     steps: [
       `Averaged ${res.spectrum.segments.length} windowed FFT spectra (Welch's method, ${fmt(res.spectrum.binWidth, 2)} Hz bins).`,
       `Strongest resonance at f = ${fmt(f, 1)} ± ${fmt(df, 1)} Hz (sub-bin parabolic interpolation).`,
