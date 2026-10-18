@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_MODEL, GROQ_URL, handleChat, parseRequest, rateLimited, resetRateLimit } from './tutor';
+import { chooseModel, DEFAULT_MODEL, GROQ_MODELS_URL, GROQ_URL, handleChat, parseRequest, rateLimited, resetModelCache, resetRateLimit } from './tutor';
 
 const ok = (reply: string) =>
   vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: reply } }] }), { status: 200 }));
 const ask = { messages: [{ role: 'user', content: 'Why is my g a bit low?' }], context: 'Experiment: pendulum. g = 9.71 ± 0.05' };
 
 describe('AI tutor back end', () => {
-  beforeEach(() => resetRateLimit());
+  beforeEach(() => {
+    resetRateLimit();
+    resetModelCache();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
 
   it('refuses politely when no API key is configured', async () => {
     expect(await handleChat(ask, { client: 'a' })).toEqual({ status: 503, body: { error: 'not_configured' } });
@@ -53,5 +57,41 @@ describe('AI tutor back end', () => {
     expect((await handleChat(ask, { apiKey: 'k', client: 'e', fetchImpl: busy })).body.error).toMatch(/busy/);
     const empty = vi.fn(async () => new Response('{"choices":[]}', { status: 200 }));
     expect((await handleChat(ask, { apiKey: 'k', client: 'f', fetchImpl: empty })).body.error).toMatch(/empty/);
+  });
+
+  it('switches to a current model when Groq has retired ours, and remembers it', async () => {
+    const calls: string[] = [];
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === GROQ_MODELS_URL) {
+        calls.push('models');
+        return new Response(JSON.stringify({ data: [{ id: 'whisper-large-v3' }, { id: 'llama-guard-4' }, { id: 'llama-4-scout-17b' }, { id: 'openai/gpt-oss-120b' }] }));
+      }
+      const model = JSON.parse(init!.body as string).model;
+      calls.push(model);
+      if (model === DEFAULT_MODEL) {
+        return new Response(JSON.stringify({ error: { code: 'model_decommissioned', message: `The model ${model} has been decommissioned` } }), { status: 400 });
+      }
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'Hi!' } }] }));
+    });
+    const r = await handleChat(ask, { apiKey: 'k', client: 'g', fetchImpl: fetchImpl as unknown as typeof fetch });
+    expect(r).toEqual({ status: 200, body: { reply: 'Hi!' } });
+    expect(calls).toEqual([DEFAULT_MODEL, 'models', 'llama-4-scout-17b']);
+    // Next question goes straight to the working model.
+    await handleChat(ask, { apiKey: 'k', client: 'g', fetchImpl: fetchImpl as unknown as typeof fetch });
+    expect(calls.at(-1)).toBe('llama-4-scout-17b');
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('unavailable (400)'));
+  });
+
+  it('says clearly when the API key is rejected', async () => {
+    const bad = vi.fn(async () => new Response('{"error":{"message":"Invalid API Key"}}', { status: 401 }));
+    const r = await handleChat(ask, { apiKey: 'wrong', client: 'h', fetchImpl: bad });
+    expect(r.body.error).toMatch(/API key was rejected/);
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Groq 401'));
+  });
+
+  it('chooses a chat model, never speech or moderation ones', () => {
+    expect(chooseModel(['whisper-large-v3', 'llama-guard-4', 'llama-3.3-70b-versatile'])).toBe('llama-3.3-70b-versatile');
+    expect(chooseModel(['whisper-large-v3', 'gemma2-9b-it'])).toBe('gemma2-9b-it');
+    expect(chooseModel(['whisper-large-v3'])).toBeNull();
   });
 });

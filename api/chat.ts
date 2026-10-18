@@ -14,8 +14,9 @@ export async function POST(request: Request): Promise<Response> {
   }
   const client = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const result = await handleChat(body, {
-    apiKey: process.env.GROQ_API_KEY,
-    model: process.env.GROQ_MODEL,
+    // Trim: a key pasted into a dashboard often carries a stray space or newline.
+    apiKey: process.env.GROQ_API_KEY?.trim(),
+    model: process.env.GROQ_MODEL?.trim() || undefined,
     client,
   });
   return Response.json(result.body, { status: result.status, headers: { 'cache-control': 'no-store' } });

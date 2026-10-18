@@ -7,6 +7,7 @@
  */
 
 export const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+export const GROQ_MODELS_URL = 'https://api.groq.com/openai/v1/models';
 export const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
 const MAX_MESSAGES = 12;
@@ -87,31 +88,88 @@ export async function handleChat(
     return { status: 429, body: { error: 'You asked a lot of questions in a short time — please wait a few minutes.' } };
   }
 
-  const payload = {
-    model: opts.model || DEFAULT_MODEL,
-    temperature: 0.3,
-    max_tokens: 500,
-    messages: [
-      { role: 'system', content: `${SYSTEM_PROMPT}\n\n--- EXPERIMENT CONTEXT ---\n${parsed.context || '(no experiment data)'}` },
-      ...parsed.messages,
-    ],
-  };
+  const doFetch = opts.fetchImpl ?? fetch;
+  const messages = [
+    { role: 'system', content: `${SYSTEM_PROMPT}
 
-  let res: Response;
-  try {
-    res = await (opts.fetchImpl ?? fetch)(GROQ_URL, {
+--- EXPERIMENT CONTEXT ---
+${parsed.context || '(no experiment data)'}` },
+    ...parsed.messages,
+  ];
+  const ask = (model: string) =>
+    doFetch(GROQ_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.apiKey}` },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ model, temperature: 0.3, max_tokens: 500, messages }),
     });
-  } catch {
+
+  let model = opts.model || cachedModel || DEFAULT_MODEL;
+  let res: Response;
+  try {
+    res = await ask(model);
+    // Groq retires models regularly. If ours is gone, pick a current one and retry once.
+    if (res.status === 400 || res.status === 404) {
+      const detail = await res.clone().text();
+      if (/model/i.test(detail)) {
+        console.error(`[tutor] model "${model}" unavailable (${res.status}): ${detail.slice(0, 300)}`);
+        const replacement = await availableModel(doFetch, opts.apiKey, model);
+        if (replacement) {
+          model = replacement;
+          cachedModel = replacement;
+          res = await ask(model);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[tutor] Groq unreachable:', e instanceof Error ? e.message : e);
     return { status: 502, body: { error: 'The AI service could not be reached. Try again in a moment.' } };
   }
-  if (res.status === 429) return { status: 429, body: { error: 'The AI tutor is busy right now. Try again in a minute.' } };
-  if (!res.ok) return { status: 502, body: { error: 'The AI service returned an error. Try again later.' } };
+
+  if (!res.ok) {
+    // Logged server-side (never the key) so the cause is visible in the hosting logs.
+    const detail = await res.text().catch(() => '');
+    console.error(`[tutor] Groq ${res.status} with model "${model}": ${detail.slice(0, 300)}`);
+    if (res.status === 429) return { status: 429, body: { error: 'The AI tutor is busy right now. Try again in a minute.' } };
+    if (res.status === 401 || res.status === 403) {
+      return { status: 502, body: { error: 'The AI tutor’s API key was rejected. The site owner needs to check GROQ_API_KEY.' } };
+    }
+    return { status: 502, body: { error: 'The AI service returned an error. Try again later.' } };
+  }
 
   const data = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string } }[] } | null;
   const reply = data?.choices?.[0]?.message?.content?.trim();
   if (!reply) return { status: 502, body: { error: 'The AI tutor gave an empty answer. Try asking differently.' } };
   return { status: 200, body: { reply } };
+}
+
+/** Model chosen after a retirement, reused for the life of this server instance. */
+let cachedModel: string | null = null;
+
+export function resetModelCache() {
+  cachedModel = null;
+}
+
+/** Text chat models only (no speech, moderation or embedding models), best first. */
+export function chooseModel(ids: string[], avoid?: string): string | null {
+  const usable = ids.filter((id) => id !== avoid && !/whisper|guard|tts|playai|embed|distil|vision|audio|orpheus|compound/i.test(id));
+  const preference = [/llama-3\.3-70b/i, /llama-4/i, /gpt-oss-120b/i, /llama.*70b/i, /gpt-oss/i, /qwen/i, /llama/i, /kimi|mixtral|gemma/i];
+  for (const p of preference) {
+    const hit = usable.find((id) => p.test(id));
+    if (hit) return hit;
+  }
+  return usable[0] ?? null;
+}
+
+async function availableModel(doFetch: typeof fetch, apiKey: string, avoid: string): Promise<string | null> {
+  try {
+    const res = await doFetch(GROQ_MODELS_URL, { headers: { authorization: `Bearer ${apiKey}` } });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { data?: { id?: string; active?: boolean }[] };
+    const ids = (data.data ?? []).filter((m) => m.id && m.active !== false).map((m) => m.id!);
+    const chosen = chooseModel(ids, avoid);
+    console.error(`[tutor] switching to model "${chosen}"`);
+    return chosen;
+  } catch {
+    return null;
+  }
 }
