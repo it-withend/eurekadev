@@ -10,7 +10,7 @@
   --accent: #2b59c3;
   --accent-ink: #ffffff;
   --axis-x: #e5484d;
-  --axis-y: #2f9e66;
+  --axis-y: #0f9d9a; /* teal, not pure green: stays distinct from x-red for colour-blind readers (validated, ΔE 12) */
   --axis-z: #2b59c3;
   --signal: #f5b700;
   --grid: rgba(43, 89, 195, 0.09);
@@ -19,7 +19,7 @@
   --bad: #d93d42;
   --series-1: #2b59c3;
   --series-2: #e5484d;
-  --series-3: #2f9e66;
+  --series-3: #0f9d9a;
   --font-sans: 'Atkinson Hyperlegible', system-ui, sans-serif;
   --font-display: 'Bricolage Grotesque', 'Atkinson Hyperlegible', system-ui, sans-serif;
   --font-num: 'Bricolage Grotesque', system-ui, sans-serif;
@@ -40,8 +40,8 @@
     --rule: #263250;
     --accent: #6c8ef5;
     --accent-ink: #0d1424;
-    --axis-x: #ff6b70;
-    --axis-y: #4cc38a;
+    --axis-x: #f2555a;
+    --axis-y: #22a8a0;
     --axis-z: #6c8ef5;
     --signal: #ffcb3d;
     --grid: rgba(108, 142, 245, 0.08);
@@ -49,8 +49,8 @@
     --warn: #f0b429;
     --bad: #ff6b70;
     --series-1: #6c8ef5;
-    --series-2: #ff6b70;
-    --series-3: #4cc38a;
+    --series-2: #f2555a;
+    --series-3: #22a8a0;
     --lift: 0 1px 0 rgba(0, 0, 0, 0.3), 0 10px 30px -14px rgba(0, 0, 0, 0.6);
     color-scheme: dark;
   }
@@ -510,12 +510,13 @@ button.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 4
   overflow: hidden;
 }
 .hero-trace canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.axis-label { position: absolute; left: 12px; font: 700 0.95rem var(--font-display); z-index: 1; }
+.axis-label { position: absolute; left: 12px; font: 700 0.95rem var(--font-display); z-index: 1;
+  background: var(--surface); border-radius: 6px; padding: 0 5px; line-height: 1.3; }
 .axis-label.x { top: calc(100% / 6 - 10px); color: var(--axis-x); }
 .axis-label.y { top: calc(50% - 10px); color: var(--axis-y); }
 .axis-label.z { top: calc(500% / 6 - 10px); color: var(--axis-z); }
 .hero-trace figcaption { margin-top: 10px; font-size: 0.9rem; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
-.live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--axis-y); box-shadow: 0 0 0 4px color-mix(in srgb, var(--axis-y) 25%, transparent); }
+.live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 4px color-mix(in srgb, var(--good) 25%, transparent); }
 
 .how { list-style: none; margin: 8px 0 0; padding: 22px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 .how li { display: flex; gap: 14px; align-items: flex-start; }
@@ -578,7 +579,7 @@ button.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 4
 }
 .step-bar button:hover { color: var(--ink); }
 .step-bar .step-no { width: 24px; height: 24px; font-size: 0.8rem; background: var(--sunken); color: var(--ink-2); }
-.step-bar .done .step-no { background: var(--axis-y); color: #fff; }
+.step-bar .done .step-no { background: var(--good); color: #fff; }
 .step-bar .current button { color: var(--ink); border-bottom-color: var(--accent); }
 .step-bar .current .step-no { background: var(--accent); color: var(--accent-ink); }
 .step-count { min-width: 20px; padding: 0 6px; height: 20px; border-radius: 999px; background: var(--signal); color: #15213a; font-size: 0.75rem; display: inline-grid; place-items: center; }
@@ -636,3 +637,13 @@ button.primary, a.button.primary { box-shadow: 0 6px 16px -8px color-mix(in srgb
   .guide-btn { padding: 5px 10px; }
 }
 .param.slider { margin-top: 10px; }
+
+/* Footer and sensor cards */
+.footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; align-items: center; }
+.footer nav { display: flex; flex-wrap: wrap; gap: 18px; }
+.footer a { color: var(--ink-2); }
+.footer a:hover { color: var(--ink); }
+/* Keep the footer clear of the floating tutor button. */
+body:has(.tutor-fab) .footer { padding-bottom: 88px; }
+.sensor-card { overflow: hidden; padding-top: 0; }
+.sensor-card .card-signal { margin: 0 -22px 16px; }

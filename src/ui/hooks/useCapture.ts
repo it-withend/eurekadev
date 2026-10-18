@@ -122,7 +122,10 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
     sensor.current = s;
     setState({ phase: 'preparing' });
     s.prepare().then(async () => {
+      // Cancelled while the permission prompt was open: this sensor is no longer ours.
+      if (sensor.current !== s) return;
       releaseWakeLock.current = await keepAwake();
+      if (sensor.current !== s) return releaseWakeLock.current();
       let remaining = def.countdownSec ?? 3;
       setState({ phase: 'countdown', remaining });
       cues.tick();
@@ -144,7 +147,9 @@ export function useCapture(def: ExperimentDefinition, onRecorded: (rec: Recordin
         }
       }, 1000);
       timers.current.push(countdown);
-    }, fail);
+    }, (e) => {
+      if (sensor.current === s) fail(e);
+    });
   };
 
   return { state, start, cancel, live };

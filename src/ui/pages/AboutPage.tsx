@@ -1,7 +1,6 @@
 export function AboutPage() {
   return (
     <article className="prose">
-      <p className="eyebrow">About</p>
       <h1>Why PocketLab exists</h1>
       <p>
         Hands-on experiments are how most people actually learn physics, but lab equipment is expensive and many schools

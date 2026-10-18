@@ -1,8 +1,11 @@
 import { CatalogPage } from '@ui/pages/CatalogPage';
 import { ExperimentPage } from '@ui/pages/ExperimentPage';
-import { AboutPage } from '@ui/pages/AboutPage';
-import { CreatePage } from '@ui/pages/CreatePage';
-import { SensorCheckPage } from '@ui/pages/SensorCheckPage';
+import { lazy, Suspense } from 'react';
+
+// Pages most students open later are loaded on demand, keeping the first load small.
+const AboutPage = lazy(() => import('@ui/pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const CreatePage = lazy(() => import('@ui/pages/CreatePage').then((m) => ({ default: m.CreatePage })));
+const SensorCheckPage = lazy(() => import('@ui/pages/SensorCheckPage').then((m) => ({ default: m.SensorCheckPage })));
 import { ErrorBoundary } from '@ui/components/ErrorBoundary';
 import { useExperiments } from '@ui/customStore';
 import { href, useRoute } from '@ui/router';
@@ -38,6 +41,7 @@ export function App() {
       <main>
         {/* Keyed by route: navigating away clears a crashed page. */}
         <ErrorBoundary key={href(route)}>
+          <Suspense fallback={<p className="hint">Loading…</p>}>
           {route.page === 'about' && <AboutPage />}
           {route.page === 'sensors' && <SensorCheckPage />}
           {route.page === 'catalog' && <CatalogPage builtIn={builtIn} custom={experiments.custom} />}
@@ -50,12 +54,18 @@ export function App() {
                 Experiment not found. <a href={href({ page: 'catalog' })}>See all experiments</a>.
               </p>
             ))}
+          </Suspense>
         </ErrorBoundary>
       </main>
 
       <footer className="footer no-print">
-        Runs entirely on your device · <a href={href({ page: 'about' })}>About PocketLab</a> · Open source · Built for
-        EurekaDev 2026
+        <span>Measurements stay on your device.</span>
+        <nav aria-label="Footer">
+          <a href={href({ page: 'about' })}>About PocketLab</a>
+          <a href="https://github.com/it-withend/eurekadev">Source code</a>
+          <a href={href({ page: 'sensors' })}>Sensor check</a>
+        </nav>
+        <span>Made for EurekaDev 2026</span>
       </footer>
     </div>
   );

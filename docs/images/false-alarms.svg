@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 236" width="960" height="236" role="img" aria-label="Before the fixes 78% of correct attempts were told they agree; now 99.7%" font-family="Atkinson Hyperlegible, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<style>
+  .bg { fill: #ffffff } .ink { fill: #15213a } .ink2 { fill: #56627b } .grid { stroke: #e3e8f1 } .axis { stroke: #c4cddc }
+  .z { fill: #2b59c3 } .x { fill: #e5484d } .y { fill: #0f9d9a } .zs { stroke: #2b59c3 } .xs { stroke: #e5484d } .ys { stroke: #0f9d9a }
+  .good { fill: #2f9e66 } .warn { fill: #c27c0e } .bad { fill: #d93d42 } .muted { fill: #b8c2d3 } .onfill { fill: #ffffff }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #0d1117 } .ink { fill: #e8edf7 } .ink2 { fill: #9aa6bf } .grid { stroke: #222b3d } .axis { stroke: #33405a }
+    .z { fill: #6c8ef5 } .x { fill: #f2555a } .y { fill: #22a8a0 } .zs { stroke: #6c8ef5 } .xs { stroke: #f2555a } .ys { stroke: #22a8a0 }
+    .good { fill: #3fb27a } .warn { fill: #e0a32e } .bad { fill: #f2555a } .muted { fill: #46536e } .onfill { fill: #0d1117 }
+  }
+</style>
+<rect class="bg" width="960" height="236" rx="12"/>
+<text class="ink" x="24" y="38" font-size="20" font-weight="700">A careful student is not told they got it wrong</text>
+<text class="ink2" x="24" y="62" font-size="13">Verdicts for correctly performed experiments with real-world imperfections (shaky hands, breath noise, uneven floors…), simulated on iPhone and Android.</text><text class="ink" x="156" y="116" font-size="14" font-weight="700" text-anchor="end">Before the fixes</text><text class="ink2" x="156" y="134" font-size="11" text-anchor="end">240 attempts</text><rect class="good" x="170" y="96" width="582.375" height="32" rx="4"/><text class="onfill" x="180" y="117" font-size="13" font-weight="700">78% agrees</text><rect class="warn" x="754.375" y="96" width="98" height="32" rx="4"/><rect class="bad" x="854.375" y="96" width="63.625" height="32" rx="4"/><text class="ink2" x="920" y="146" font-size="11" text-anchor="end">13.3% close, 8.8% told “far off”</text><text class="ink" x="156" y="178" font-size="14" font-weight="700" text-anchor="end">Now</text><text class="ink2" x="156" y="196" font-size="11" text-anchor="end">360 attempts</text><rect class="good" x="170" y="158" width="745.9166666666666" height="32" rx="4"/><text class="onfill" x="180" y="179" font-size="13" font-weight="700">99.7% agrees</text><rect class="warn" x="917.9166666666666" y="158" width="2" height="32" rx="4"/><text class="ink2" x="920" y="208" font-size="11" text-anchor="end">0.3% close</text>
+</svg>

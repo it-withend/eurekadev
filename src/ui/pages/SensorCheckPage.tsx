@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createSensor, SensorError, type SensorSource } from '@core/sensors';
 import type { SensorKind } from '@core/types';
 import { LiveChart } from '../components/LiveChart';
+import { SignalGlyph } from '../components/SignalGlyph';
 import type { LiveBuffer } from '../hooks/useCapture';
 
 const INFO: Record<SensorKind, { title: string; what: string; preview: (s: Record<string, number>) => number; label: string }> = {
@@ -86,6 +87,9 @@ function SensorCard({ kind }: { kind: SensorKind }) {
 
   return (
     <section className="panel sensor-card">
+      <span className="card-signal">
+        <SignalGlyph glyph={kind === 'motion' ? 'swing' : 'spectrum'} />
+      </span>
       <h2>{info.title}</h2>
       <p className="hint">{info.what}</p>
       {status.state === 'running' ? (
@@ -148,7 +152,6 @@ function SensorCard({ kind }: { kind: SensorKind }) {
 export function SensorCheckPage() {
   return (
     <article>
-      <p className="eyebrow">Before you start</p>
       <h1>Check your phone’s sensors</h1>
       <p className="lede">A ten-second test that tells you which experiments this device can run. Nothing is recorded or sent anywhere.</p>
       <div className="exp-grid sensor-grid">

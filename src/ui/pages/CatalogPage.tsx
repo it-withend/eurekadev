@@ -3,7 +3,7 @@ import type { ExperimentDefinition } from '@core/types';
 import { href } from '../router';
 import { startTour, Tour } from '../tour/Tour';
 import { CATALOG_TOUR } from '../tour/tours';
-import { importExperimentFile } from './CreatePage';
+import { importExperimentFile } from '../customStore';
 import { HeroTrace } from '../components/HeroTrace';
 import { SignalGlyph } from '../components/SignalGlyph';
 

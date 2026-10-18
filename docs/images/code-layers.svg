@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 298" width="960" height="298" role="img" aria-label="50 percent of the code has no UI-framework dependency" font-family="Atkinson Hyperlegible, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<style>
+  .bg { fill: #ffffff } .ink { fill: #15213a } .ink2 { fill: #56627b } .grid { stroke: #e3e8f1 } .axis { stroke: #c4cddc }
+  .z { fill: #2b59c3 } .x { fill: #e5484d } .y { fill: #0f9d9a } .zs { stroke: #2b59c3 } .xs { stroke: #e5484d } .ys { stroke: #0f9d9a }
+  .good { fill: #2f9e66 } .warn { fill: #c27c0e } .bad { fill: #d93d42 } .muted { fill: #b8c2d3 } .onfill { fill: #ffffff }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #0d1117 } .ink { fill: #e8edf7 } .ink2 { fill: #9aa6bf } .grid { stroke: #222b3d } .axis { stroke: #33405a }
+    .z { fill: #6c8ef5 } .x { fill: #f2555a } .y { fill: #22a8a0 } .zs { stroke: #6c8ef5 } .xs { stroke: #f2555a } .ys { stroke: #22a8a0 }
+    .good { fill: #3fb27a } .warn { fill: #e0a32e } .bad { fill: #f2555a } .muted { fill: #46536e } .onfill { fill: #0d1117 }
+  }
+</style>
+<rect class="bg" width="960" height="298" rx="12"/>
+<text class="ink" x="24" y="38" font-size="20" font-weight="700">50% of the code works without any UI framework</text>
+<text class="ink2" x="24" y="62" font-size="13">Lines of code per layer. Framework-free layers can be reused in a native app, another framework or on a server.</text>
+<rect class="z" x="630" y="80" width="12" height="12" rx="3"/><text class="ink2" x="648" y="91" font-size="12">framework-free TypeScript</text>
+<rect class="muted" x="810" y="80" width="12" height="12" rx="3"/><text class="ink2" x="828" y="91" font-size="12">React UI</text><text class="ink2" x="218" y="125" font-size="13" text-anchor="end">Signal processing (dsp)</text><rect class="z" x="230" y="112" width="89.63375329622033" height="18" rx="4"/><text class="ink" x="327.63375329622033" y="126" font-size="12">478</text><text class="ink2" x="218" y="159" font-size="13" text-anchor="end">Core contracts &amp; sensors</text><rect class="z" x="230" y="146" width="176.642250219748" height="18" rx="4"/><text class="ink" x="414.642250219748" y="160" font-size="12">942</text><text class="ink2" x="218" y="193" font-size="13" text-anchor="end">Experiments &amp; builder</text><rect class="z" x="230" y="180" width="344.0961031350718" height="18" rx="4"/><text class="ink" x="582.0961031350719" y="194" font-size="12">1,835</text><text class="ink2" x="218" y="227" font-size="13" text-anchor="end">AI tutor server</text><rect class="z" x="230" y="214" width="30.190448285965424" height="18" rx="4"/><text class="ink" x="268.19044828596543" y="228" font-size="12">161</text><text class="ink2" x="218" y="261" font-size="13" text-anchor="end">Interface (React)</text><rect class="muted" x="230" y="248" width="640" height="18" rx="4"/><text class="ink" x="878" y="262" font-size="12">3,413</text>
+</svg>

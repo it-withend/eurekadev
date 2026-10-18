@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { compileFormula, evaluate } from '@core/expression';
 import { MEASURES, type MeasureKind } from '@experiments/custom/measures';
-import { newCustomId, parseCustomSpec, validateSpec, type CustomExperimentSpec, type CustomVariable } from '@experiments/custom/spec';
+import { validateSpec, type CustomExperimentSpec, type CustomVariable } from '@experiments/custom/spec';
 import { fromTemplate, TEMPLATES } from '@experiments/custom/templates';
 import { customStore } from '../customStore';
 import { DecimalInput } from '../components/DecimalInput';
@@ -97,7 +97,6 @@ export function CreatePage({ id }: { id?: string }) {
   if (!spec) {
     return (
       <article className="create">
-        <p className="eyebrow">Experiment builder</p>
         <h1>Design your own experiment</h1>
         <p className="lede">
           Anything that swings, bounces, spins, jolts or makes a sound can be measured. Choose what the phone measures,
@@ -141,7 +140,6 @@ export function CreatePage({ id }: { id?: string }) {
       <a className="back" href={href({ page: 'catalog' })}>
         ← All experiments
       </a>
-      <p className="eyebrow">Experiment builder</p>
       <h1>{existing ? 'Edit your experiment' : 'Design your own experiment'}</h1>
 
       <section className="panel" data-tour="create-basics">
@@ -353,12 +351,4 @@ export function CreatePage({ id }: { id?: string }) {
       </div>
     </article>
   );
-}
-
-/** Reads a shared experiment file; a clash with an existing id gets a fresh one. */
-export async function importExperimentFile(file: File): Promise<CustomExperimentSpec> {
-  const spec = parseCustomSpec(JSON.parse(await file.text()));
-  if (customStore.get(spec.id)) spec.id = newCustomId(spec.title);
-  customStore.upsert(spec);
-  return spec;
 }

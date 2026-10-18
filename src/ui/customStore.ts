@@ -3,7 +3,7 @@ import type { ExperimentDefinition } from '@core/types';
 import { createRegistry, type ExperimentRegistry } from '@core/registry';
 import { registry as builtIn } from '@experiments/index';
 import { createCustomExperiment } from '@experiments/custom/factory';
-import { parseCustomSpec, type CustomExperimentSpec } from '@experiments/custom/spec';
+import { newCustomId, parseCustomSpec, type CustomExperimentSpec } from '@experiments/custom/spec';
 import { load, save } from './storage';
 
 /** Student-made experiments, kept on this device. A tiny external store so every page stays in sync. */
@@ -59,4 +59,12 @@ export function useExperiments(): ExperimentRegistry & { custom: ExperimentDefin
     const all = createRegistry([...builtIn.list(), ...custom]);
     return { ...all, custom };
   }, [specs]);
+}
+
+/** Reads a shared experiment file; a clash with an existing id gets a fresh one. */
+export async function importExperimentFile(file: File): Promise<CustomExperimentSpec> {
+  const spec = parseCustomSpec(JSON.parse(await file.text()));
+  if (customStore.get(spec.id)) spec.id = newCustomId(spec.title);
+  customStore.upsert(spec);
+  return spec;
 }

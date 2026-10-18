@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="PocketLab — your phone is a physics lab" font-family="Bricolage Grotesque, Segoe UI, Helvetica, Arial, sans-serif">
+<style>
+  .bg { fill: #f4f7fc } .grid { stroke: #dfe6f2 } .ink { fill: #15213a } .ink2 { fill: #56627b } .frame { stroke: #15213a; fill: #ffffff }
+  .x { stroke: #e5484d } .y { stroke: #0f9d9a } .z { stroke: #2b59c3 } .xf { fill: #e5484d } .yf { fill: #0f9d9a } .zf { fill: #2b59c3 }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #0d1424 } .grid { stroke: #1c2740 } .ink { fill: #eef2fa } .ink2 { fill: #9aa6bf } .frame { stroke: #eef2fa; fill: #141d31 }
+    .x { stroke: #f2555a } .y { stroke: #22a8a0 } .z { stroke: #6c8ef5 } .xf { fill: #f2555a } .yf { fill: #22a8a0 } .zf { fill: #6c8ef5 }
+  }
+</style>
+<defs>
+  <pattern id="g" width="32" height="32" patternUnits="userSpaceOnUse"><path class="grid" d="M32 0H0V32" fill="none" stroke-width="1"/></pattern>
+</defs>
+<rect class="bg" width="1280" height="320" rx="20"/>
+<rect width="1280" height="320" rx="20" fill="url(#g)"/>
+<!-- phone outline holding a live trace -->
+<rect class="frame" x="84" y="64" width="112" height="192" rx="22" stroke-width="5"/>
+<path class="z" d="M100 168 C112 128 124 128 136 168 S160 208 172 168 S182 140 186 152" fill="none" stroke-width="5" stroke-linecap="round"/>
+<text class="ink" x="248" y="168" font-size="104" font-weight="800" letter-spacing="-4">PocketLab</text>
+<text class="ink2" x="252" y="222" font-size="30" font-family="Atkinson Hyperlegible, Segoe UI, Helvetica, Arial, sans-serif">Your phone is a physics lab.</text>
+<!-- three sensor axes, as the app draws them -->
+<g fill="none" stroke-width="4" stroke-linecap="round">
+  <path class="x" d="M820 96 C860 88 900 104 940 96 S1020 88 1060 96 S1140 104 1196 96"/>
+  <path class="y" d="M820 160 C836 130 852 130 868 160 S900 190 916 160 S948 130 964 160 S996 190 1012 160 S1044 130 1060 160 S1092 190 1108 160 S1140 130 1156 160 S1180 182 1196 160"/>
+  <path class="z" d="M820 224 C850 180 880 180 910 224 S970 268 1000 224 S1060 180 1090 224 S1150 268 1196 224"/>
+</g>
+<circle class="xf" cx="1196" cy="96" r="7"/><circle class="yf" cx="1196" cy="160" r="7"/><circle class="zf" cx="1196" cy="224" r="7"/>
+</svg>
