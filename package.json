@@ -20,7 +20,8 @@
     "stress": "tsx scripts/stress.ts",
     "charts": "tsx scripts/charts.ts",
     "screenshots": "tsx scripts/screenshots.ts",
-    "coverage": "vitest run --coverage --coverage.include=src/dsp --coverage.include=src/core --coverage.include=src/experiments --coverage.include=src/server"
+    "coverage": "vitest run --coverage --coverage.include=src/dsp --coverage.include=src/core --coverage.include=src/experiments --coverage.include=src/server",
+    "gallery": "tsx scripts/gallery.ts"
   },
   "dependencies": {
     "react": "^18.3.1",
