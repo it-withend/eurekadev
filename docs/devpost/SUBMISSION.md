@@ -29,7 +29,7 @@ Hang your phone on a string and measure gravity to within 1 %. 12 real experimen
 
 Paste the whole of [ABOUT.md](ABOUT.md) (open it, select all, copy). It uses only
 what Devpost supports: `##` headlines, **bold**, _italics_, links, images, code
-blocks, `\( … \)` inline maths and `$$ … $$` displayed equations.
+blocks, `\\( … \\)` inline maths and `$$ … $$` displayed equations.
 
 ### Built with (tags)
 
